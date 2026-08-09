@@ -1,0 +1,459 @@
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+
+const prisma = new PrismaClient();
+
+const STAFF_PASSWORD = 'Dorsu@2025!';
+
+const TERMS = [
+  { code: 'AY-2024-2025-T1', label: '1st Semester, AY 2024-2025', start: '2024-08-05', end: '2024-12-20' },
+  { code: 'AY-2024-2025-T2', label: '2nd Semester, AY 2024-2025', start: '2025-01-13', end: '2025-05-23' },
+  { code: 'AY-2025-2026-T1', label: '1st Semester, AY 2025-2026', start: '2025-08-04', end: '2025-12-19', isActive: true, open: true },
+];
+
+const CAMPUSES = [
+  { code: 'MATI', name: 'Main Campus - Mati', isMain: true },
+  { code: 'BAGANGA', name: 'Baganga Campus' },
+  { code: 'BANAYBANAY', name: 'Banaybanay Campus' },
+  { code: 'CATEEL', name: 'Cateel Campus' },
+  { code: 'SANISIDRO', name: 'San Isidro Campus' },
+  { code: 'TARRAGONA', name: 'Tarragona Campus' },
+];
+
+const FACULTIES = [
+  { code: 'FCE', name: 'Faculty of Computing and Engineering', campus: 'MATI' },
+  { code: 'FBM', name: 'Faculty of Business and Management', campus: 'MATI' },
+  { code: 'FED', name: 'Faculty of Education', campus: 'CATEEL' },
+  { code: 'FNAHS', name: 'Faculty of Nursing and Allied Health Sciences', campus: 'MATI' },
+  { code: 'FAG', name: 'Faculty of Agriculture and Fisheries', campus: 'BAGANGA' },
+  { code: 'FST', name: 'Faculty of Science and Technology', campus: 'CATEEL' },
+  { code: 'FAH', name: 'Faculty of Arts and Humanities', campus: 'BANAYBANAY' },
+];
+
+/**
+ * Curriculum definitions for each program. Subjects are listed in curriculum
+ * order and grouped four per academic year; `yearLevel` is derived from the
+ * index, `semester` is always the first block (demo scope).
+ */
+const PROGRAMS = [
+  {
+    code: 'BSIT',
+    name: 'Bachelor of Science in Information Technology',
+    faculty: 'FCE',
+    campus: 'MATI',
+    curriculum: [
+      { title: 'CC101 Introduction to Computing', units: 3, lec: 2, lab: 3 },
+      { title: 'CC102 Computer Programming 1', units: 3, lec: 2, lab: 3 },
+      { title: 'GE101 Purposive Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'GE102 Mathematics in the Modern World', units: 3, lec: 3, lab: 0 },
+      { title: 'CC201 Data Structures and Algorithms', units: 3, lec: 2, lab: 3, prereqs: ['CC102 Computer Programming 1'] },
+      { title: 'CC202 Object-Oriented Programming', units: 3, lec: 2, lab: 3, prereqs: ['CC102 Computer Programming 1'] },
+      { title: 'BSIT201 Database Management 1', units: 3, lec: 2, lab: 3, prereqs: ['CC102 Computer Programming 1'] },
+      { title: 'IT201 Web Systems and Technologies 1', units: 3, lec: 2, lab: 3, prereqs: ['CC102 Computer Programming 1'] },
+      { title: 'CC311 Advanced Databases', units: 3, lec: 2, lab: 3, prereqs: ['BSIT201 Database Management 1'] },
+      { title: 'ITE311 Business Analytics Foundations', units: 3, lec: 2, lab: 3, prereqs: ['BSIT201 Database Management 1'] },
+      { title: 'GE203 Science Technology and Society', units: 3, lec: 3, lab: 0 },
+      { title: 'IT401 Capstone Project 1', units: 3, lec: 2, lab: 3, prereqs: ['CC311 Advanced Databases'] },
+    ],
+  },
+  {
+    code: 'BSCS',
+    name: 'Bachelor of Science in Computer Science',
+    faculty: 'FCE',
+    campus: 'MATI',
+    curriculum: [
+      { title: 'CS101 Discrete Structures 1', units: 3, lec: 3, lab: 0 },
+      { title: 'CS102 Programming Fundamentals', units: 3, lec: 2, lab: 3 },
+      { title: 'GE141 Purposive Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'GE142 Mathematics in the Modern World', units: 3, lec: 3, lab: 0 },
+      { title: 'CS201 Data Structures and Algorithms', units: 3, lec: 2, lab: 3, prereqs: ['CS102 Programming Fundamentals'] },
+      { title: 'CS202 Object-Oriented Programming', units: 3, lec: 2, lab: 3, prereqs: ['CS102 Programming Fundamentals'] },
+      { title: 'CS221 Computer Organization', units: 3, lec: 3, lab: 0 },
+      { title: 'CS301 Design and Analysis of Algorithms', units: 3, lec: 3, lab: 0, prereqs: ['CS201 Data Structures and Algorithms'] },
+    ],
+  },
+  {
+    code: 'BSBA-FM',
+    name: 'Bachelor of Science in Business Administration (Financial Management)',
+    faculty: 'FBM',
+    campus: 'MATI',
+    curriculum: [
+      { title: 'BA101 Fundamentals of Management', units: 3, lec: 3, lab: 0 },
+      { title: 'ACCT100 Basic Accounting', units: 3, lec: 3, lab: 0 },
+      { title: 'GE110 Purposive Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'BA201 Financial Management 1', units: 3, lec: 3, lab: 0, prereqs: ['ACCT100 Basic Accounting'] },
+      { title: 'BA301 Operations Management', units: 3, lec: 3, lab: 0, prereqs: ['BA101 Fundamentals of Management'] },
+    ],
+  },
+  {
+    code: 'BSEd',
+    name: 'Bachelor of Secondary Education (Science)',
+    faculty: 'FED',
+    campus: 'CATEEL',
+    curriculum: [
+      { title: 'ED101 The Teaching Profession', units: 3, lec: 3, lab: 0 },
+      { title: 'ED109 Field Study 1', units: 3, lec: 3, lab: 0, prereqs: ['ED101 The Teaching Profession'] },
+    ],
+  },
+  {
+    code: 'BSN',
+    name: 'Bachelor of Science in Nursing',
+    faculty: 'FNAHS',
+    campus: 'MATI',
+    curriculum: [
+      { title: 'NUR101 Anatomy and Physiology', units: 3, lec: 2, lab: 3 },
+      { title: 'NUR201 Health Assessment (RLE)', units: 6, lec: 2, lab: 6, prereqs: ['NUR101 Anatomy and Physiology'] },
+    ],
+  },
+  {
+    code: 'BSAG',
+    name: 'Bachelor of Science in Agriculture',
+    faculty: 'FAG',
+    campus: 'BAGANGA',
+    curriculum: [
+      { title: 'AGRI101 Fundamentals of Crop Production', units: 3, lec: 2, lab: 3 },
+      { title: 'AGRI201 Soil Science', units: 3, lec: 3, lab: 0 },
+      { title: 'AGRI301 Agricultural Economics', units: 3, lec: 3, lab: 0, prereqs: ['AGRI101 Fundamentals of Crop Production'] },
+    ],
+  },
+  {
+    code: 'ABCOM',
+    name: 'Bachelor of Arts in Communication',
+    faculty: 'FAH',
+    campus: 'BANAYBANAY',
+    curriculum: [
+      { title: 'COM101 Fundamentals of Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'COM201 Communication Research', units: 3, lec: 3, lab: 0, prereqs: ['COM101 Fundamentals of Communication'] },
+    ],
+  },
+  {
+    code: 'BSES',
+    name: 'Bachelor of Science in Environmental Science',
+    faculty: 'FST',
+    campus: 'CATEEL',
+    curriculum: [
+      { title: 'ENV101 Introduction to Environmental Science', units: 3, lec: 3, lab: 0 },
+      { title: 'ENV201 Environmental Pollution and Control', units: 3, lec: 3, lab: 0, prereqs: ['ENV101 Introduction to Environmental Science'] },
+    ],
+  },
+];
+
+const STRANDS = ['STEM', 'ABM', 'HUMMS', 'GAS', 'TVL-ICT', 'TVL-HE', 'TVL-IA'];
+
+const FULL_NAMES = [
+  'Anna Marie Dela Cruz', 'Joshua Reyes', 'Maria Clara Villanueva', 'Eduardo Ignacio',
+  'Sofia Patricia Ramos', 'Rafael Bautista', 'Isabella Gonzaga', 'Nathaniel Cruz',
+  'Camille Navarro', 'Miguel Paez', 'Samantha Ferrer', 'Carlos Lim',
+  'Bianca Castillo', 'Francis Arce', 'Trisha Mae Sotto', 'Paolo Tagana',
+  'Angeline Rosales', 'Rico Salazar', 'Chloe Ann Dizon', 'Marco Villarino',
+  'Angela Marie Cordero', 'Elijah Domingo', 'Nathalie Abadilla', 'RJ Mercado',
+  'Veronica Curts', 'Lance De Vera', 'Mia Obispo', 'Kristoff Bumagat',
+  'Althea Andres', 'Zander Llanes', 'Rachel Lynn Quinto', 'Brianne Vivas',
+];
+
+const FACULTY_NAMES = [
+  'Engr. Althea Mae Soriano', 'Joebert M. Reyes', 'Carmela P. Vidal',
+  'Ronnel A. Damole', 'Melchora T. Cando', 'Jessabel T. Escobar',
+];
+
+const SCHEDULES = [
+  'MW 07:00-10:00', 'MW 10:00-13:00', 'TTh 07:00-10:00', 'TTh 13:00-16:00',
+  'WF 08:00-11:00', 'FS 09:00-12:00', 'MW 03:00-06:00', 'TTh 10:00-13:00',
+];
+
+const ROOMS = [
+  'Room 101 - Main', 'Room 202 - Main', 'ComLab 2 - Main', 'Room 304 - Main',
+  'Room 12 - Annex', 'Room 45 - Annex', 'Room 203 - Main', 'Room 305 - Main',
+];
+
+/** Deterministic PRNG so a fresh database reproduces the same demo data. */
+function mulberry32(seed) {
+  return function next() {
+    seed |= 0;
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const rand = mulberry32(58012175);
+const pick = (list) => list[Math.floor(rand() * list.length)];
+const between = (min, max) => min + rand() * (max - min);
+
+const pad = (value, width) => String(value).padStart(width, '0');
+
+function computeGrade(prelim, midterm, final) {
+  return Math.round((prelim * 0.3 + midterm * 0.3 + final * 0.4) * 100) / 100;
+}
+
+/**
+ * Maps an academic year (1..n) to the term where that year of study happened.
+ * We keep a single semester block of history per year for demo scale.
+ */
+const PREVIOUS_TERM_FOR_YEAR = { 1: 'AY-2024-2025-T1', 2: 'AY-2024-2025-T2' };
+const TERM_SUFFIX = { 'AY-2024-2025-T1': '241S', 'AY-2024-2025-T2': '242S', 'AY-2025-2026-T1': '251S' };
+
+const ACTIVE_SCENARIOS = ['PENDING', 'PENDING', 'APPROVED', 'APPROVED', 'REJECTED', 'WITHDRAWN', 'PENDING', 'APPROVED'];
+
+async function main() {
+  const staffHash = await bcrypt.hash(STAFF_PASSWORD, 10);
+
+  const termRecords = {};
+  for (const t of TERMS) {
+    termRecords[t.code] = await prisma.term.create({
+      data: {
+        code: t.code,
+        label: t.label,
+        startDate: new Date(t.start),
+        endDate: new Date(t.end),
+        isActive: Boolean(t.isActive),
+        enrollmentOpen: Boolean(t.open),
+      },
+    });
+  }
+
+  const campusRecords = {};
+  for (const c of CAMPUSES) {
+    campusRecords[c.code] = await prisma.campus.create({ data: c });
+  }
+
+  const facultyRecords = {};
+  for (const f of FACULTIES) {
+    facultyRecords[f.code] = await prisma.faculty.create({
+      data: { code: f.code, name: f.name, campusId: campusRecords[f.campus].id },
+    });
+  }
+
+  const registrar = await prisma.user.create({
+    data: { email: 'registrar@dorsu.edu.ph', passwordHash: staffHash, fullName: 'Luminary M. Bandola', role: 'REGISTRAR' },
+  });
+
+  await prisma.user.create({
+    data: { email: 'admin@dorsu.edu.ph', passwordHash: staffHash, fullName: 'Christopher L. Mercado', role: 'ADMIN' },
+  });
+
+  const facultyUsers = [];
+  for (const name of FACULTY_NAMES) {
+    facultyUsers.push(
+      await prisma.user.create({
+        data: {
+          email: `faculty${facultyUsers.length + 1}@dorsu.edu.ph`,
+          passwordHash: staffHash,
+          fullName: name,
+          role: 'FACULTY',
+        },
+      }),
+    );
+  }
+
+  /* ------------------------------- Programs, subjects, prerequisites ---- */
+  const programRecords = [];
+  for (const def of PROGRAMS) {
+    const program = await prisma.program.create({
+      data: {
+        code: def.code,
+        name: def.name,
+        campusId: campusRecords[def.campus].id,
+        facultyId: facultyRecords[def.faculty].id,
+        totalUnits: def.curriculum.reduce((sum, s) => sum + s.units, 0),
+      },
+    });
+
+    const subjects = [];
+    const subjectsByTitle = new Map();
+    for (let index = 0; index < def.curriculum.length; index += 1) {
+      const subjectDef = def.curriculum[index];
+      const yearLevel = Math.floor(index / 4) + 1;
+      const subject = await prisma.subject.create({
+        data: {
+          code: `${def.code}-Y${yearLevel}-${pad(index + 1, 2)}`,
+          title: subjectDef.title,
+          units: subjectDef.units,
+          lectureHours: subjectDef.lec,
+          labHours: subjectDef.lab,
+          yearLevel,
+          semester: 1,
+          programId: program.id,
+        },
+      });
+      subjects.push(subject);
+      subjectsByTitle.set(subjectDef.title, subject);
+    }
+
+    for (const subjectDef of def.curriculum) {
+      const target = subjectsByTitle.get(subjectDef.title);
+      for (const prereqTitle of subjectDef.prereqs ?? []) {
+        const prereq = subjectsByTitle.get(prereqTitle);
+        if (!prereq) throw new Error(`Unknown prerequisite "${prereqTitle}" in ${def.code}`);
+        await prisma.subjectRule.create({ data: { subjectId: target.id, prereqId: prereq.id } });
+      }
+    }
+
+    programRecords.push({ def, program, subjects, subjectsByTitle });
+  }
+  console.log(`Seeded ${programRecords.length} programs with curricula`);
+
+  /* ---------------------------- Sections (per term and subject) --------- */
+  const sectionByTermSubject = new Map(); // key: `${termId}|${subjectId}`
+  for (const record of programRecords) {
+    for (const subject of record.subjects) {
+      for (const term of TERMS) {
+        const section = await prisma.section.create({
+          data: {
+            code: `${subject.code}-${TERM_SUFFIX[term.code]}`,
+            subjectId: subject.id,
+            termId: termRecords[term.code].id,
+            facultyId: facultyUsers[Math.floor(rand() * facultyUsers.length)].id,
+            schedule: pick(SCHEDULES),
+            room: pick(ROOMS),
+            capacity: subject.yearLevel === 1 ? 40 : 35,
+          },
+        });
+        sectionByTermSubject.set(`${termRecords[term.code].id}|${subject.id}`, section);
+      }
+    }
+  }
+  console.log(`Seeded ${sectionByTermSubject.size} sections across terms`);
+
+  /* ---------------------------------------- Students --------------------- */
+  const studentRecords = [];
+  for (let i = 0; i < FULL_NAMES.length; i += 1) {
+    const [firstName, ...rest] = FULL_NAMES[i].split(' ');
+    const lastName = rest.join(' ');
+    const yearLevel = (i % 4) + 1;
+    const programRecord = programRecords[i % programRecords.length];
+
+    const student = await prisma.studentProfile.create({
+      data: {
+        studentNo: `D-2025-${pad(i + 1, 4)}`,
+        firstName,
+        lastName,
+        sex: i % 2 === 0 ? 'MALE' : 'FEMALE',
+        yearLevel,
+        strand: STRANDS[i % STRANDS.length],
+        programId: programRecord.program.id,
+        campusId: campusRecords[programRecord.def.campus].id,
+        // Deterministic 6-digit activation code. In production this is
+        // delivered privately; the demo returns it on-screen.
+        activationCode: `${pad(i + 1, 3)}${pad(i * 7 + 20, 3)}`,
+      },
+    });
+    studentRecords.push({ student, fullName: FULL_NAMES[i], yearLevel, program: programRecord });
+  }
+  console.log(`Seeded ${studentRecords.length} students`);
+
+  /* ------------------------- Historical years (grades for underclasses) -- */
+  for (const record of studentRecords) {
+    // Only students in years 2-4 have history to show.
+    const yearLevel = record.yearLevel;
+    if (yearLevel < 2) continue;
+
+    const termCode = PREVIOUS_TERM_FOR_YEAR[yearLevel];
+    const term = termRecords[termCode];
+    const priorYearSubjects = record.program.subjects.filter((s) => s.yearLevel === yearLevel - 1);
+    if (!term || priorYearSubjects.length === 0) continue;
+
+    const sections = priorYearSubjects.map(
+      (subject) => sectionByTermSubject.get(`${term.id}|${subject.id}`),
+    );
+
+    const submittedAt = new Date(term.startDate);
+    await prisma.enrollmentRequest.create({
+      data: {
+        studentId: record.student.id,
+        termId: term.id,
+        status: 'APPROVED',
+        submittedAt,
+        reviewedAt: new Date(submittedAt.getTime() + 7 * 86400000),
+        reviewedById: registrar.id,
+        items: { create: sections.map((section) => ({ sectionId: section.id })) },
+      },
+    });
+
+    for (const section of sections) {
+      const final = Math.min(3.0, Math.round((between(1.5, 2.3)) * 100) / 100);
+      const prelim = final + between(-0.2, 0.3);
+      const midterm = final + between(-0.2, 0.2);
+      await prisma.gradeRecord.create({
+        data: {
+          sectionId: section.id,
+          studentId: record.student.id,
+          prelim: Math.round(prelim * 100) / 100,
+          midterm: Math.round(midterm * 100) / 100,
+          final,
+          grade: computeGrade(
+            Math.round(prelim * 100) / 100,
+            Math.round(midterm * 100) / 100,
+            final,
+          ),
+          status: 'FINALIZED',
+          gradedById: registrar.id,
+        },
+      });
+    }
+  }
+  console.log('Seeded historical enrollments and grades for upperclassmen');
+
+  /* ----------------------------- Active-term enrollment scenarios -------- */
+  const activeTerm = TERMS.find((t) => t.isActive);
+  for (let i = 0; i < ACTIVE_SCENARIOS.length; i += 1) {
+    const record = studentRecords[i];
+    const status = ACTIVE_SCENARIOS[i];
+
+    const load = record.program.subjects.filter((s) => s.yearLevel === record.yearLevel);
+    if (load.length === 0) continue;
+    const termRecord = termRecords[activeTerm.code];
+    const sections = load.map((subject) => sectionByTermSubject.get(`${termRecord.id}|${subject.id}`));
+
+    const submittedAt = new Date(activeTerm.start);
+    const reviewedAt = status === 'PENDING' ? null : new Date(submittedAt.getTime() + 3 * 86400000);
+
+    const request = await prisma.enrollmentRequest.create({
+      data: {
+        studentId: record.student.id,
+        termId: termRecord.id,
+        status,
+        submittedAt,
+        reviewedAt,
+        reviewedById: status === 'PENDING' ? null : registrar.id,
+        studentNote: null,
+        reviewNotes: status === 'REJECTED' ? 'Report of Grades not attached; please resubmit.' : status === 'WITHDRAWN' ? 'Withdrawal requested by student.' : null,
+        items: { create: sections.map((section) => ({ sectionId: section.id })) },
+      },
+    });
+
+    if (status === 'APPROVED' && sections.length > 1) {
+      const section = sections[1];
+      const final = Math.min(3.0, Math.round(between(1.4, 2.2) * 100) / 100);
+      await prisma.gradeRecord.create({
+        data: {
+          sectionId: section.id,
+          studentId: record.student.id,
+          prelim: final + 0.2,
+          midterm: final + 0.1,
+          final,
+          grade: computeGrade(final + 0.2, final + 0.1, final),
+          status: 'FINALIZED',
+          gradedById: registrar.id,
+        },
+      });
+    }
+    console.log(`Scenario ${i}: ${record.fullName} -> ${status} (${request.id})`);
+  }
+
+  console.log('Seed completed');
+  console.log('Demo accounts:');
+  console.log('  registrar@dorsu.edu.ph / Dorsu@2025!');
+  console.log('  admin@dorsu.edu.ph / Dorsu@2025!');
+  console.log('  faculty1@dorsu.edu.ph .. faculty6@dorsu.edu.ph / Dorsu@2025!');
+  console.log('  Students: D-2025-0001 .. D-2025-0032 (activate with their login code returned by the verify screen)');
+}
+
+main()
+  .then(() => prisma.$disconnect())
+  .catch(async (err) => {
+    console.error(err);
+    await prisma.$disconnect();
+    process.exit(1);
+  });

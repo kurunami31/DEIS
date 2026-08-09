@@ -1,0 +1,39 @@
+{
+  "name": "deis-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DEIS - DOrSU Enrollment Information System (backend API)",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "node prisma/seed.mjs",
+    "db:reset": "prisma db push --force-reset && node prisma/seed.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.9.0",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.9.0",
+    "supertest": "^7.1.0",
+    "vitest": "^3.2.0"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.mjs"
+  }
+}

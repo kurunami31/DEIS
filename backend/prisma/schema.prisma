@@ -1,0 +1,253 @@
+// DEIS - DOrSU Enrollment Information System
+// Prisma schema. Development uses local PostgreSQL 17; production uses Supabase (PostgreSQL).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  FACULTY
+  REGISTRAR
+  ADMIN
+}
+
+enum Sex {
+  MALE
+  FEMALE
+}
+
+enum EnrollmentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+enum GradeStatus {
+  DRAFT
+  FINALIZED
+}
+
+// ---------------------------------------------------------------------------
+// Identity
+// ---------------------------------------------------------------------------
+
+model User {
+  id                 String   @id @default(uuid())
+  email              String   @unique
+  passwordHash       String
+  fullName           String
+  role               Role     @default(STUDENT)
+  mustChangePassword Boolean  @default(false)
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  student          StudentProfile?
+  facultySections  Section[]          @relation("FacultySections")
+  reviewedRequests EnrollmentRequest[] @relation("ReviewedRequests")
+  gradeRecords     GradeRecord[]       @relation("GradedRecords")
+  activities       ActivityRecord[]
+
+  @@index([role])
+}
+
+model StudentProfile {
+  id             String   @id @default(uuid())
+  userId         String?  @unique // null until the student activates credentials
+  studentNo      String   @unique
+  firstName      String
+  lastName       String
+  yearLevel      Int      @default(1)
+  sex            Sex
+  strand         String?
+  programId      String
+  campusId       String
+  activationCode String   @unique
+  enrolledAt     DateTime @default(now())
+
+  user    User?   @relation(fields: [userId], references: [id])
+  program Program @relation(fields: [programId], references: [id])
+  campus  Campus  @relation(fields: [campusId], references: [id])
+
+  enrollmentRequests EnrollmentRequest[]
+  grades             GradeRecord[]
+}
+
+model Campus {
+  id       String @id @default(uuid())
+  code     String @unique
+  name     String
+  isMain   Boolean @default(false)
+  students StudentProfile[]
+  faculties Faculty[]
+  programs Program[]
+
+  @@index([code])
+}
+
+model Faculty {
+  id       String @id @default(uuid())
+  code     String @unique
+  name     String
+  campusId String
+  campus   Campus  @relation(fields: [campusId], references: [id])
+  programs Program[]
+}
+
+model Program {
+  id         String @id @default(uuid())
+  code       String @unique
+  name       String
+  level      String @default("Undergraduate")
+  campusId   String
+  facultyId  String
+  totalUnits Int    @default(0)
+
+  campus   Campus   @relation(fields: [campusId], references: [id])
+  faculty  Faculty  @relation(fields: [facultyId], references: [id])
+  subjects Subject[]
+  students StudentProfile[]
+}
+
+model Subject {
+  id           String @id @default(uuid())
+  code         String @unique
+  title        String
+  units        Int
+  lectureHours Int    @default(0)
+  labHours     Int    @default(0)
+  yearLevel    Int    @default(1)
+  semester     Int    @default(1)
+
+  programId String
+  program   Program   @relation(fields: [programId], references: [id])
+  requires  SubjectRule[] @relation("SubjectRuleTarget")
+  requiredBy SubjectRule[] @relation("SubjectRuleSource")
+
+  sections Section[]
+
+  @@index([programId, yearLevel, semester])
+}
+
+model SubjectRule {
+  id        String @id @default(uuid())
+  subjectId String
+  prereqId  String
+
+  subject Subject @relation("SubjectRuleTarget", fields: [subjectId], references: [id])
+  prereq  Subject @relation("SubjectRuleSource", fields: [prereqId], references: [id])
+
+  @@unique([subjectId, prereqId])
+}
+
+model Term {
+  id             String   @id @default(uuid())
+  code           String   @unique
+  label          String
+  startDate      DateTime
+  endDate        DateTime
+  isActive       Boolean  @default(false)
+  enrollmentOpen Boolean  @default(false)
+
+  sections Section[]
+  requests EnrollmentRequest[]
+
+  @@index([isActive])
+}
+
+// ---------------------------------------------------------------------------
+// Enrollment
+// ---------------------------------------------------------------------------
+
+model EnrollmentRequest {
+  id           String           @id @default(uuid())
+  studentId    String
+  termId       String
+  status       EnrollmentStatus @default(PENDING)
+  reviewNotes  String?
+  reviewedById String?
+  submittedAt  DateTime         @default(now())
+  reviewedAt   DateTime?
+  studentNote  String?
+
+  student    StudentProfile @relation(fields: [studentId], references: [id])
+  term       Term           @relation(fields: [termId], references: [id])
+  reviewedBy User?          @relation("ReviewedRequests", fields: [reviewedById], references: [id])
+  items      EnrollmentItem[]
+
+  @@unique([studentId, termId])
+  @@index([status])
+}
+
+model EnrollmentItem {
+  id        String @id @default(uuid())
+  requestId String
+  sectionId String
+
+  request EnrollmentRequest @relation(fields: [requestId], references: [id])
+  section Section           @relation(fields: [sectionId], references: [id])
+
+  @@unique([requestId, sectionId])
+  @@index([sectionId])
+}
+
+model Section {
+  id        String @id @default(uuid())
+  code      String @unique
+  subjectId String
+  termId    String
+  facultyId String
+  schedule  String
+  room      String
+  capacity  Int    @default(40)
+
+  subject Subject @relation(fields: [subjectId], references: [id])
+  term    Term    @relation(fields: [termId], references: [id])
+  faculty User    @relation("FacultySections", fields: [facultyId], references: [id])
+
+  items  EnrollmentItem[]
+  grades GradeRecord[]
+
+  @@index([termId, subjectId])
+}
+
+model GradeRecord {
+  id         String     @id @default(uuid())
+  sectionId  String
+  studentId  String
+  prelim     Decimal?   @db.Decimal(5, 2)
+  midterm    Decimal?   @db.Decimal(5, 2)
+  final      Decimal?   @db.Decimal(5, 2)
+  grade      Decimal?   @db.Decimal(5, 2)
+  status     GradeStatus @default(DRAFT)
+  gradedById String?
+  gradedAt   DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  section  Section        @relation(fields: [sectionId], references: [id])
+  student  StudentProfile @relation(fields: [studentId], references: [id])
+  gradedBy User?          @relation("GradedRecords", fields: [gradedById], references: [id])
+
+  @@unique([sectionId, studentId])
+}
+
+model ActivityRecord {
+  id         String   @id @default(uuid())
+  actorId    String?
+  actionKey  String
+  entityType String
+  entityId   String?
+  meta       Json?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id])
+
+  @@index([actorId, createdAt])
+}
