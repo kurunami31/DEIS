@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Builds
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.production.local
+.env.VERCEL
+
+# Logs
+*.log
+server.err
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python (legacy prototypes)
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Uploads
+uploads/
