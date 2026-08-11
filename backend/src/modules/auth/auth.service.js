@@ -7,6 +7,7 @@ import {
   NotFoundError,
   ConflictError,
   UnprocessableError,
+  ForbiddenError,
 } from '../../lib/http.js';
 import {
   isLocked,
@@ -137,6 +138,9 @@ export async function login(identifier, password, { ip } = {}) {
 export async function changePassword(userId, currentPassword, newPassword) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new NotFoundError('User not found.');
+  if (user.role === 'ADMIN') {
+    throw new ForbiddenError('The administrator account is system-managed and cannot change its password.');
+  }
   if (!(await verifyPassword(currentPassword, user.passwordHash))) {
     throw new UnauthorizedError('Current password is incorrect.');
   }

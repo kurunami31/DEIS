@@ -65,11 +65,23 @@ Without the key, `/api/chat` returns structured offline answers about enrollment
 
 ## Demo accounts (seeded)
 
-| Account | Password |
+Staff passwords are **unique per account** and derived from the account email
+(implemented in `backend/src/lib/passwords.js` → `demoPassword()`); every `npm run db:reset`
+prints the full list, e.g.:
+
+| Account | Role |
 | --- | --- |
-| `registrar@dorsu.edu.ph` | `Dorsu@2025!` |
-| `admin@dorsu.edu.ph` | `Dorsu@2025!` |
-| `faculty1@dorsu.edu.ph` … `faculty6@dorsu.edu.ph` | `Dorsu@2025!` |
+| `registrar@dorsu.edu.ph` | Registrar |
+| `admin@dorsu.edu.ph` | Administrator (unique account; password is system-managed and cannot be changed via the portal) |
+| `althea.soriano@dorsu.edu.ph` … `jessabel.escobar@dorsu.edu.ph` | Faculty (school emails derived from the seeded names) |
+
+Run the seed to see the exact passwords:
+
+```bash
+cd backend && npm run db:seed
+```
+
+New staff accounts created in the admin panel get an auto-generated one-time password returned once in the UI and must change it on first login.
 
 Students (`2025-0001` … `2025-0032`) are onboarded through the public flow: **Verify → Activate → Login** — their activation codes are returned by the verify screen.
 

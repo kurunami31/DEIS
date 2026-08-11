@@ -5,24 +5,27 @@ import { asyncHandler, ok, created } from '../../lib/http.js';
 import { validate } from '../../middleware/validate.js';
 import { authenticate, allowRoles } from '../../middleware/auth.js';
 import { audit } from '../../lib/audit.js';
-import { hashPassword } from '../../lib/passwords.js';
-import { ConflictError, NotFoundError } from '../../lib/http.js';
+import { hashPassword, generateRandomPassword } from '../../lib/passwords.js';
+import { ConflictError, NotFoundError, UnprocessableError } from '../../lib/http.js';
 
 const router = Router();
 
-const userCreateSchema = z.object({
-  fullName: z.string().min(2).max(100),
-  email: z.string().email(),
-  role: z.enum(['FACULTY', 'REGISTRAR', 'ADMIN']),
-  defaultPassword: z
-    .string()
-    .min(12, 'Password must be at least 12 characters')
-    .max(72)
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/[0-9]/, 'Password must contain at least one number')
-    .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
-});
+const userCreateSchema = z
+  .object({
+    fullName: z.string().min(2).max(100),
+    email: z.string().email(),
+    role: z.enum(['FACULTY', 'REGISTRAR', 'ADMIN']),
+  })
+  .superRefine((data, ctx) => {
+    // Faculty accounts use their school email so staff identity is verifiable.
+    if (data.role === 'FACULTY' && !data.email.toLowerCase().endsWith('@dorsu.edu.ph')) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['email'],
+        message: 'Faculty accounts must use their school email (name@dorsu.edu.ph).',
+      });
+    }
+  });
 
 router.get(
   '/users',
@@ -52,7 +55,17 @@ router.post(
   allowRoles('ADMIN'),
   validate(userCreateSchema),
   asyncHandler(async (req, res) => {
-    const passwordHash = await hashPassword(req.body.defaultPassword);
+    if (req.body.role === 'ADMIN') {
+      const existingAdmin = await prisma.user.count({ where: { role: 'ADMIN' } });
+      if (existingAdmin > 0) {
+        throw new ConflictError('The system already has an administrator account; it cannot be duplicated.');
+      }
+    }
+
+    // Passwords are always generated server-side so no plaintext is ever
+    // transmitted; the temporary password is returned once for hand-over.
+    const temporaryPassword = generateRandomPassword();
+    const passwordHash = await hashPassword(temporaryPassword);
     const user = await prisma.user.create({
       data: {
         fullName: req.body.fullName,
@@ -65,7 +78,7 @@ router.post(
       select: { id: true, fullName: true, email: true, role: true },
     });
     await audit({ actorId: req.user.id, action: 'USER_CREATED', entityType: 'user', entityId: user.id });
-    return created(res, user);
+    return created(res, { user, temporaryPassword });
   }),
 );
 
@@ -80,6 +93,9 @@ router.patch(
     if (!target) throw new NotFoundError('User not found.');
     if (target.id === req.user.id) {
       return res.status(422).json({ error: { code: 'SELF_DEACTIVATE', message: 'You cannot deactivate your own account.' } });
+    }
+    if (target.role === 'ADMIN') {
+      throw new UnprocessableError('The administrator account is system-managed and cannot be deactivated.');
     }
     const user = await prisma.user.update({
       where: { id: req.params.id },

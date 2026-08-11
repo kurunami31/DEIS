@@ -1,9 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { demoPassword } from '../src/lib/passwords.js';
 
 const prisma = new PrismaClient();
-
-const STAFF_PASSWORD = 'Dorsu@2025!';
 
 const TERMS = [
   { code: 'AY-2024-2025-T1', label: '1st Semester, AY 2024-2025', start: '2024-08-05', end: '2024-12-20' },
@@ -156,6 +155,20 @@ const FACULTY_NAMES = [
   'Ronnel A. Damole', 'Melchora T. Cando', 'Jessabel T. Escobar',
 ];
 
+const EMAIL_TITLES = new Set(['engr', 'dr', 'prof', 'sir', 'madam']);
+
+/** Faculty accounts use their school email: <first>.<last>@dorsu.edu.ph */
+function schoolEmailFromName(name) {
+  const tokens = name
+    .split(/\s+/)
+    .map((token) => token.toLowerCase().replace(/[^a-z0-9]/g, ''))
+    .filter((token) => token && !EMAIL_TITLES.has(token));
+  if (!tokens.length) throw new Error(`Cannot derive a school email from "${name}"`);
+  const first = tokens[0];
+  const last = tokens[tokens.length - 1];
+  return `${first}.${last}@dorsu.edu.ph`;
+}
+
 const SCHEDULES = [
   'MW 07:00-10:00', 'MW 10:00-13:00', 'TTh 07:00-10:00', 'TTh 13:00-16:00',
   'WF 08:00-11:00', 'FS 09:00-12:00', 'MW 03:00-06:00', 'TTh 10:00-13:00',
@@ -197,7 +210,28 @@ const TERM_SUFFIX = { 'AY-2024-2025-T1': '241S', 'AY-2024-2025-T2': '242S', 'AY-
 const ACTIVE_SCENARIOS = ['PENDING', 'PENDING', 'APPROVED', 'APPROVED', 'REJECTED', 'WITHDRAWN', 'PENDING', 'APPROVED'];
 
 async function main() {
-  const staffHash = await bcrypt.hash(STAFF_PASSWORD, 10);
+  // Every staff account gets its own unique generated password derived from
+  // its email, so credentials are never shared across accounts.
+  const staffDefs = [
+    { email: 'registrar@dorsu.edu.ph', fullName: 'Luminary M. Bandola', role: 'REGISTRAR' },
+    { email: 'admin@dorsu.edu.ph', fullName: 'Christopher L. Mercado', role: 'ADMIN' },
+    ...FACULTY_NAMES.map((name) => ({
+      email: schoolEmailFromName(name),
+      fullName: name,
+      role: 'FACULTY',
+    })),
+  ];
+
+  const staffUsers = [];
+  for (const def of staffDefs) {
+    staffUsers.push(
+      await prisma.user.create({
+        data: { email: def.email, passwordHash: await bcrypt.hash(demoPassword(def.email), 10), fullName: def.fullName, role: def.role },
+      }),
+    );
+  }
+  const registrar = staffUsers[0];
+  const facultyUsers = staffUsers.filter((u) => u.role === 'FACULTY');
 
   const termRecords = {};
   for (const t of TERMS) {
@@ -223,28 +257,6 @@ async function main() {
     facultyRecords[f.code] = await prisma.faculty.create({
       data: { code: f.code, name: f.name, campusId: campusRecords[f.campus].id },
     });
-  }
-
-  const registrar = await prisma.user.create({
-    data: { email: 'registrar@dorsu.edu.ph', passwordHash: staffHash, fullName: 'Luminary M. Bandola', role: 'REGISTRAR' },
-  });
-
-  await prisma.user.create({
-    data: { email: 'admin@dorsu.edu.ph', passwordHash: staffHash, fullName: 'Christopher L. Mercado', role: 'ADMIN' },
-  });
-
-  const facultyUsers = [];
-  for (const name of FACULTY_NAMES) {
-    facultyUsers.push(
-      await prisma.user.create({
-        data: {
-          email: `faculty${facultyUsers.length + 1}@dorsu.edu.ph`,
-          passwordHash: staffHash,
-          fullName: name,
-          role: 'FACULTY',
-        },
-      }),
-    );
   }
 
   /* ------------------------------- Programs, subjects, prerequisites ---- */
@@ -506,11 +518,11 @@ async function main() {
   if (calDefs.length) console.log('Seeded calendar activities');
 
   console.log('Seed completed');
-  console.log('Demo accounts:');
-  console.log('  registrar@dorsu.edu.ph / Dorsu@2025!');
-  console.log('  admin@dorsu.edu.ph / Dorsu@2025!');
-  console.log('  faculty1@dorsu.edu.ph .. faculty6@dorsu.edu.ph / Dorsu@2025!');
-  console.log('  Students: 2025-XXXX (activate with their login code returned by the verify screen)');
+  console.log('Demo accounts (password is unique per account and derived from its email):');
+  for (const def of staffDefs) {
+    console.log(`  ${def.email} / ${demoPassword(def.email)}  [${def.role} - ${def.fullName}]`);
+  }
+  console.log('  Students: 2025-0001..0032 - activate via the verify screen, which shows the one-time activation code');
 }
 
 main()

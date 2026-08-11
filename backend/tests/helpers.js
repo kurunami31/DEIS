@@ -2,11 +2,11 @@ import request from 'supertest';
 import { createApp } from '../src/app.js';
 import { prisma } from '../src/lib/prisma.js';
 import * as authService from '../src/modules/auth/auth.service.js';
+import { demoPassword } from '../src/lib/passwords.js';
 
 export const app = createApp();
 export const api = request(app);
 
-export const STAFF_PASSWORD = 'Dorsu@2025!';
 export const TEST_STUDENT_NO = '2025-9999';
 export const TEST_ACTIVATION_CODE = '987654';
 export const TEST_STUDENT_PASSWORD = 'DorsuTest@123!';
@@ -77,7 +77,7 @@ export async function cleanupTestData() {
   testUserId = null;
 }
 
-export async function loginAs(identifier, password = STAFF_PASSWORD) {
+export async function loginAs(identifier, password = demoPassword(identifier)) {
   const res = await api.post('/api/auth/login').send({ identifier, password });
   return res;
 }
@@ -92,4 +92,4 @@ export function authHeaders(token) {
 
 export const registrarToken = async () => (await loginAs('registrar@dorsu.edu.ph')).body.data.token;
 export const adminToken = async () => (await loginAs('admin@dorsu.edu.ph')).body.data.token;
-export const facultyToken = async () => (await loginAs('faculty1@dorsu.edu.ph')).body.data.token;
+export const facultyToken = async () => (await loginAs('althea.soriano@dorsu.edu.ph')).body.data.token;
