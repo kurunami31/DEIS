@@ -274,6 +274,12 @@ function SpfTab({ profile, onSaved }) {
     }
   }, [profile]);
 
+  const filledFraction = useMemo(() => {
+    if (!form) return 0;
+    const filled = Object.values(form).filter((v) => v !== '' && v !== null && v !== undefined).length;
+    return Math.round((filled / Object.keys(form).length) * 100);
+  }, [form]);
+
   if (!profile || !form) return <div className="h-60 animate-pulse rounded-[15px] bg-slate-100" />;
 
   const patch = (key, value) => setForm((f) => ({ ...f, [key]: value }));
@@ -306,11 +312,6 @@ function SpfTab({ profile, onSaved }) {
       setSaving(false);
     }
   };
-
-  const filledFraction = useMemo(() => {
-    const filled = Object.values(form).filter((v) => v !== '' && v !== null && v !== undefined).length;
-    return Math.round((filled / Object.keys(form).length) * 100);
-  }, [form]);
 
   return (
     <form onSubmit={handleSave} className="space-y-5">
