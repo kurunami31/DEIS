@@ -4,7 +4,8 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { config } from './config.js';
 import { notFoundHandler, errorHandler } from './middleware/error-handler.js';
-import { csrfGuard } from './middleware/auth.js';
+import { csrfGuard, isSameOrigin } from './middleware/auth.js';
+import { ForbiddenError } from './lib/http.js';
 import { routes } from './routes/index.js';
 
 export function createApp() {
@@ -33,15 +34,20 @@ export function createApp() {
       referrerPolicy: { policy: 'no-referrer' },
     }),
   );
-  app.use(
+  app.use((req, res, next) => {
     cors({
       origin(origin, cb) {
-        if (!origin || config.corsOrigins.includes(origin)) return cb(null, true);
-        cb(new Error(`Origin ${origin} is not allowed by CORS`));
+        // Requests without an Origin header (curl, servers) are always allowed.
+        if (!origin || config.corsOrigins.includes(origin) || isSameOrigin(req, origin)) {
+          return cb(null, true);
+        }
+        // Cross-site origins are rejected with 403, not a bare Error (which the
+        // error handler would otherwise surface as an opaque 500).
+        return cb(new ForbiddenError(`Origin ${origin} is not allowed by CORS`));
       },
       credentials: true,
-    }),
-  );
+    })(req, res, next);
+  });
   app.use(cookieParser());
   app.use(csrfGuard);
 

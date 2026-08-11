@@ -30,7 +30,7 @@ export function errorHandler(err, req, res, next) {
   }
 
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
-    const mapped = PRISMA_TO_HTTP_STATUS[err.code];
+    const mapped = PRISMA_TO_HTTP[err.code];
     if (mapped) {
       const field =
         Array.isArray(err.meta?.target) && typeof err.meta.target[0] === 'string'
@@ -58,7 +58,7 @@ export function errorHandler(err, req, res, next) {
     return res.status(499).json({ error: { code: 'CLIENT_CLOSED', message: 'Request aborted by client' } });
   }
 
-  console.error('[deis-api] unhandled error', err);
+  console.error(`[deis-api] unhandled error ${req.method} ${req.originalUrl}`, err);
   const message = config.isProduction ? 'Internal server error' : err.message || 'Internal server error';
   res.status(500).json({ error: { code: 'INTERNAL', message } });
 }

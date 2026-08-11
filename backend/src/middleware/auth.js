@@ -56,6 +56,24 @@ export function requireStudent(req, res, next) {
   next();
 }
 
+/**
+ * True when the request's Origin header belongs to the same host that served the
+ * page. The SPA and API are deployed behind one host (e.g. deis-two.vercel.app),
+ * so same-origin browser requests must always be accepted even when CORS_ORIGIN
+ * is not configured for the production domain. Returns false for cross-site and
+ * malformed origins.
+ */
+export function isSameOrigin(req, origin) {
+  if (!origin || typeof origin !== 'string') return false;
+  const host = req.headers.host;
+  if (!host) return false;
+  try {
+    return new URL(origin).host === host.toLowerCase();
+  } catch {
+    return false;
+  }
+}
+
 // CSRF guard for cookie-authenticated state changes. The browser's SameSite=Strict
 // cookie already blocks cross-site sends; this is defense in depth for the case
 // where a strict cookie is bypassed (older clients / non-compliant browsers).
@@ -64,6 +82,6 @@ export function csrfGuard(req, res, next) {
   const origin = req.headers.origin;
   if (!origin) return next();
   const allowed = req.app.get('corsOrigins') ?? [];
-  if (allowed.includes(origin)) return next();
+  if (allowed.includes(origin) || isSameOrigin(req, origin)) return next();
   return next(new ForbiddenError('Cross-site request blocked'));
 }
