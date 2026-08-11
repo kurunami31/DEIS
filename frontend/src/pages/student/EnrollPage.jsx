@@ -97,7 +97,6 @@ export default function EnrollPage() {
       )}
 
       <section className="card overflow-hidden">
-        <div className="absolute inset-0" />
         <div className="bg-gradient-to-br from-accent-start via-primary-800 to-primary-900 px-6 py-5 text-white">
           <h2 className="text-lg font-bold">Enrollment for {term ? term.label : 'the current term'}</h2>
           {term && (
