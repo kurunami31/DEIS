@@ -40,30 +40,28 @@ router.get(
   authenticate,
   requireStudent,
   asyncHandler(async (req, res) => {
-    const student = await prisma.studentProfile.findUnique({
-      where: { userId: req.user.id },
-      include: { program: true },
-    });
+    // The authenticated user already carries the linked student profile, so the
+    // initial lookup can be skipped (one fewer DB round trip per request).
+    const student = req.user.student;
     if (!student) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Student profile not found' } });
 
     const term = await prisma.term.findFirst({ where: { isActive: true }, orderBy: { startDate: 'desc' } });
     if (!term) return ok(res, { term: null, sections: [] });
 
-    const relevantProgramIds = [student.programId];
-
-    const sections = await prisma.section.findMany({
-      where: { termId: term.id, subject: { programId: { in: relevantProgramIds } } },
-      include: {
-        subject: { include: { requires: { include: { prereq: true } } } },
-        faculty: { select: { fullName: true } },
-      },
-      orderBy: [{ subject: { yearLevel: 'asc' } }, { subject: { semester: 'asc' } }, { code: 'asc' }],
-    });
-
-    const passed = await prisma.gradeRecord.findMany({
-      where: { studentId: student.id, grade: { lte: 3.0 } },
-      select: { section: { select: { subjectId: true } } },
-    });
+    const [sections, passed] = await Promise.all([
+      prisma.section.findMany({
+        where: { termId: term.id, subject: { programId: student.programId } },
+        include: {
+          subject: { include: { requires: { include: { prereq: true } } } },
+          faculty: { select: { fullName: true } },
+        },
+        orderBy: [{ subject: { yearLevel: 'asc' } }, { subject: { semester: 'asc' } }, { code: 'asc' }],
+      }),
+      prisma.gradeRecord.findMany({
+        where: { studentId: student.id, grade: { lte: 3.0 } },
+        select: { section: { select: { subjectId: true } } },
+      }),
+    ]);
     const passedSet = new Set(passed.map((p) => p.section.subjectId));
 
     const enrollmentItems = await prisma.enrollmentItem.findMany({

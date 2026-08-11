@@ -14,32 +14,19 @@ const CLEARANCE_REVIEW_ROLES = ['REGISTRAR', 'ADMIN', ...OFFICE_ROLES];
 
 const signoffInclude = { include: { template: true, reviewedBy: { select: { fullName: true } } }, orderBy: { template: { code: 'asc' } } };
 
-async function ensureClearanceFor(studentId, termId) {
-  return prisma.studentClearance.upsert({
-    where: { studentId_termId: { studentId, termId } },
-    create: {
-      studentId,
-      termId,
-      signoffs: {
-        create: (await prisma.clearanceTemplate.findMany({ orderBy: { code: 'asc' } })).map((t) => ({
-          templateId: t.id,
-        })),
-      },
-    },
-    update: {},
-    include: { signoffs: signoffInclude },
-  });
-}
-
 // ------------------------------------------------------------- student view
 router.get(
   '/my',
   authenticate,
   requireStudent,
   asyncHandler(async (req, res) => {
-    const student = await prisma.studentProfile.findUnique({ where: { userId: req.user.id } });
+    // The authenticated user already carries the linked student profile, so the
+    // initial lookup can be skipped (one fewer DB round trip per request).
+    const studentId = req.user.student?.id;
+    if (!studentId) throw new ForbiddenError('Student profile is required');
+
     const requests = await prisma.enrollmentRequest.findMany({
-      where: { studentId: student.id },
+      where: { studentId },
       include: { term: true },
       orderBy: { submittedAt: 'desc' },
     });
@@ -47,11 +34,24 @@ router.get(
     const term = withTerm[0]?.term ?? (await prisma.term.findFirst({ where: { isActive: true } }));
     if (!term) return ok(res, { clearance: null, templates: [], reasons: [] });
 
-    const clearance = await ensureClearanceFor(student.id, term.id);
-    const templates = await prisma.clearanceTemplate.findMany({ orderBy: { code: 'asc' } });
-    const subjects = await prisma.enrollmentItem.findMany({
-      where: { request: { studentId: student.id, termId: term.id, status: 'APPROVED' } },
-      select: { section: { select: { subject: { select: { title: true } } } } },
+    // Templates and subject list are independent of the clearance upsert, and
+    // the upsert reuses the fetched templates instead of re-querying them.
+    const [templates, subjects] = await Promise.all([
+      prisma.clearanceTemplate.findMany({ orderBy: { code: 'asc' } }),
+      prisma.enrollmentItem.findMany({
+        where: { request: { studentId, termId: term.id, status: 'APPROVED' } },
+        select: { section: { select: { subject: { select: { title: true } } } } },
+      }),
+    ]);
+    const clearance = await prisma.studentClearance.upsert({
+      where: { studentId_termId: { studentId, termId: term.id } },
+      create: {
+        studentId,
+        termId,
+        signoffs: { create: templates.map((t) => ({ templateId: t.id })) },
+      },
+      update: {},
+      include: { signoffs: signoffInclude },
     });
     return ok(res, { clearance, term, templates, subjects: subjects.map((r) => r.section.subject.title) });
   }),
