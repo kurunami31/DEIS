@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ArrowRight, BookOpen, CalendarDays, ClipboardList, FileText, GraduationCap,
-  Inbox, LayoutGrid, Users, BarChart3,
+  ArrowRight, BadgeCheck, BookOpen, CalendarDays, ClipboardList, FileText, GraduationCap,
+  Inbox, LayoutGrid, ShieldCheck, Users, BarChart3,
 } from 'lucide-react';
 import { request } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { formatDate } from '../lib/utils.js';
+
+const OFFICE_ROLES = ['ACCOUNTING', 'ADMISSION', 'OSA', 'OHS', 'CASHIERING', 'OSCD', 'FAASG'];
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -44,6 +46,7 @@ function WelcomeBanner({ user }) {
 function RoleOverview({ role }) {
   if (role === 'STUDENT') return <StudentOverview />;
   if (role === 'FACULTY') return <FacultyOverview />;
+  if (OFFICE_ROLES.includes(role)) return <OfficeOverview role={role} />;
   return <OfficerOverview role={role} />;
 }
 
@@ -165,6 +168,56 @@ function FacultyOverview() {
   );
 }
 
+function OfficeOverview({ role }) {
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    request({ url: '/clearances' })
+      .then(setData)
+      .catch(() => setData({ items: [] }));
+  }, []);
+
+  if (!data) return <LoadingCards />;
+
+  const items = data.items ?? [];
+  const mine = items.flatMap((c) => c.signoffs.filter((s) => s.template.ownerRole === role));
+  const cleared = mine.filter((s) => s.status === 'CLEARED').length;
+  const pending = mine.length - cleared;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-600">
+          <ShieldCheck size={16} className="text-primary-600" /> My Clearance Workload
+        </h2>
+        <Link to="/clearance-review" className="btn-primary !px-3 !py-1.5 text-xs">
+          Review clearances <ArrowRight size={13} />
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <MiniStat icon={Users} label="Students" value={items.length} />
+        <MiniStat icon={ShieldCheck} label="Cleared by my office" value={cleared} tone="badge-green" />
+        <MiniStat icon={Inbox} label="Awaiting my sign-off" value={pending} tone="badge-amber" />
+        <MiniStat
+          icon={BadgeCheck}
+          label="My office progress"
+          value={mine.length ? `${Math.round((cleared / mine.length) * 100)}%` : '—'}
+          tone="badge-blue"
+        />
+      </div>
+
+      <p className="text-xs text-slate-400">
+        {pending > 0
+          ? `${pending} student${pending === 1 ? '' : 's'} in ${items.length > 0 ? data.term?.label ?? 'this term' : ''} still need your sign-off.`
+          : mine.length > 0
+            ? 'All students assigned to your office are cleared.'
+            : 'Open Clearance Review to sign off students assigned to your office.'}
+      </p>
+    </div>
+  );
+}
+
 function OfficerOverview({ role }) {
   const [overview, setOverview] = useState(null);
   const [sections, setSections] = useState(null);
@@ -231,7 +284,18 @@ function QuickActions({ role }) {
       { to: '/users', label: 'User accounts', icon: Users, desc: 'Manage access' },
       { to: '/terms', label: 'Academic terms', icon: CalendarDays, desc: 'Set the calendar' },
     ],
-  }[role] ?? [];
+  }[role]
+    ?? (OFFICE_ROLES.includes(role)
+      ? [
+          { to: '/clearance-review', label: 'Clearance sign-off', icon: BadgeCheck, desc: 'Clear students for your office' },
+          ...(role === 'ADMISSION'
+            ? [
+                { to: '/review', label: 'Review requests', icon: Inbox, desc: 'Approve or reject' },
+                { to: '/students', label: 'Student records', icon: Users, desc: 'Browse the registry' },
+              ]
+            : []),
+        ]
+      : []);
 
   return (
     <section className="card card-pad">
@@ -297,6 +361,9 @@ function roleBlurb(role) {
     case 'ADMIN':
       return 'Oversee the whole system — accounts, academic terms, and the institutional catalog.';
     default:
+      if (OFFICE_ROLES.includes(role)) {
+        return 'Sign off student clearances assigned to your office for the current term.';
+      }
       return '';
   }
 }
