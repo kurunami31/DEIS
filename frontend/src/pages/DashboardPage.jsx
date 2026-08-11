@@ -50,14 +50,49 @@ function RoleOverview({ role }) {
   return <OfficerOverview role={role} />;
 }
 
-function StudentOverview() {
+/** Loads dashboard data with an explicit loading and error state, so a slow or
+ *  failed request never leaves the page looking like its contents are missing. */
+function useLoad(fetcher) {
   const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    request({ url: '/students/me' }).then(setData).catch(() => {});
-  }, []);
+    let cancelled = false;
+    setError(null);
+    fetcher()
+      .then((result) => {
+        if (!cancelled) setData(result);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err?.message || 'Could not load data');
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attempt]);
 
-  if (!data) return <LoadingCards />;
+  return { data, error, retry: () => setAttempt((n) => n + 1) };
+}
+
+function LoadError({ message, onRetry }) {
+  return (
+    <div className="rounded-[15px] border border-amber-200 bg-amber-50 p-4">
+      <p className="text-sm font-semibold text-amber-800">Couldn't load your data</p>
+      <p className="mt-1 text-xs text-amber-700">{message}</p>
+      <button type="button" onClick={onRetry} className="btn-secondary mt-3 !px-3 !py-1.5 text-xs">
+        Try again
+      </button>
+    </div>
+  );
+}
+
+function StudentOverview() {
+  const { data, error, retry } = useLoad(() => request({ url: '/students/me' }));
+
+  if (error) return <LoadError message={error} onRetry={retry} />;
+  if (!data) return <LoadingCards label="Loading your enrollment…" />;
 
   const latest = data.enrollmentRequests?.[0] ?? null;
   const latestStatus = latest?.status ?? null;
@@ -118,13 +153,10 @@ function StudentOverview() {
 }
 
 function FacultyOverview() {
-  const [sections, setSections] = useState(null);
+  const { data: sections, error, retry } = useLoad(() => request({ url: '/sections/my' }));
 
-  useEffect(() => {
-    request({ url: '/sections/my' }).then(setSections).catch(() => setSections([]));
-  }, []);
-
-  if (!sections) return <LoadingCards />;
+  if (error) return <LoadError message={error} onRetry={retry} />;
+  if (!sections) return <LoadingCards label="Loading your teaching load…" />;
 
   const studentCount = sections.reduce((sum, s) => sum + (s._count?.items ?? 0), 0);
 
@@ -169,15 +201,10 @@ function FacultyOverview() {
 }
 
 function OfficeOverview({ role }) {
-  const [data, setData] = useState(null);
+  const { data, error, retry } = useLoad(() => request({ url: '/clearances' }));
 
-  useEffect(() => {
-    request({ url: '/clearances' })
-      .then(setData)
-      .catch(() => setData({ items: [] }));
-  }, []);
-
-  if (!data) return <LoadingCards />;
+  if (error) return <LoadError message={error} onRetry={retry} />;
+  if (!data) return <LoadingCards label="Loading your clearance workload…" />;
 
   const items = data.items ?? [];
   const mine = items.flatMap((c) => c.signoffs.filter((s) => s.template.ownerRole === role));
@@ -219,22 +246,16 @@ function OfficeOverview({ role }) {
 }
 
 function OfficerOverview({ role }) {
-  const [overview, setOverview] = useState(null);
-  const [sections, setSections] = useState(null);
-
-  useEffect(() => {
+  const { data, error, retry } = useLoad(() =>
     Promise.all([
       request({ url: '/analytics/overview' }),
       request({ url: '/analytics/sections' }),
-    ])
-      .then(([overviewData, sectionData]) => {
-        setOverview(overviewData);
-        setSections(sectionData);
-      })
-      .catch(() => {});
-  }, []);
+    ]).then(([overviewData, sectionData]) => ({ overview: overviewData, sections: sectionData })),
+  );
 
-  if (!overview || !sections) return <LoadingCards />;
+  if (error) return <LoadError message={error} onRetry={retry} />;
+  if (!data) return <LoadingCards label="Loading your dashboard…" />;
+  const { overview, sections } = data;
 
   const pending = overview.termSeries.reduce((sum, t) => sum + (t.pending ?? 0), 0);
   const totalRequests = overview.termSeries.reduce((sum, t) => sum + (t.pending ?? 0) + (t.approved ?? 0) + (t.rejected ?? 0), 0);
@@ -333,12 +354,18 @@ function MiniStat({ icon: Icon, label, value, tone = 'badge-blue' }) {
   );
 }
 
-function LoadingCards() {
+function LoadingCards({ label = 'Loading…' }) {
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      {[0, 1, 2, 3].map((i) => (
-        <div key={i} className="h-24 animate-pulse rounded-[15px] bg-slate-100" />
-      ))}
+    <div className="space-y-3">
+      <p className="flex items-center gap-2 text-xs text-slate-400">
+        <span className="size-3 animate-spin rounded-full border-2 border-primary-200 border-t-primary-600" />
+        {label}
+      </p>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="h-24 animate-pulse rounded-[15px] bg-slate-100" />
+        ))}
+      </div>
     </div>
   );
 }

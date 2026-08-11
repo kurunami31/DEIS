@@ -15,17 +15,34 @@ router.get(
   authenticate,
   allowRoles('REGISTRAR', 'ADMIN'),
   asyncHandler(async (req, res) => {
-    const [terms, programs, campuses, students] = await Promise.all([
+    // The dashboard pays a fixed cost per DB round trip on serverless, so the
+    // counts and dimension breakdowns are merged into two raw statements plus
+    // the term list and the request-status tally (4 round trips instead of 9).
+    const [terms, scalars, dims, requests] = await Promise.all([
       prisma.term.findMany({ orderBy: { startDate: 'desc' } }),
-      prisma.program.count(),
-      prisma.campus.count(),
-      prisma.studentProfile.count(),
+      prisma.$queryRaw`
+        SELECT
+          (SELECT COUNT(*)::int FROM "Program") AS programs,
+          (SELECT COUNT(*)::int FROM "Campus") AS campuses,
+          (SELECT COUNT(*)::int FROM "StudentProfile") AS students
+      `,
+      prisma.$queryRaw`
+        SELECT 'program' AS dim, "programId" AS k, COUNT(*)::int AS n
+        FROM "StudentProfile" WHERE "programId" IS NOT NULL GROUP BY "programId"
+        UNION ALL
+        SELECT 'campus', "campusId", COUNT(*)::int
+        FROM "StudentProfile" WHERE "campusId" IS NOT NULL GROUP BY "campusId"
+        UNION ALL
+        SELECT 'strand', "strand", COUNT(*)::int
+        FROM "StudentProfile" GROUP BY "strand"
+        UNION ALL
+        SELECT 'year', "yearLevel"::text, COUNT(*)::int
+        FROM "StudentProfile" WHERE "yearLevel" IS NOT NULL GROUP BY "yearLevel"
+        ORDER BY dim, n DESC
+      `,
+      prisma.enrollmentRequest.groupBy({ by: ['termId', 'status'], _count: true }),
     ]);
 
-    const requests = await prisma.enrollmentRequest.groupBy({
-      by: ['termId', 'status'],
-      _count: true,
-    });
     const byTerm = {};
     for (const row of requests) {
       byTerm[row.termId] ??= { PENDING: 0, APPROVED: 0, REJECTED: 0, WITHDRAWN: 0 };
@@ -39,26 +56,29 @@ router.get(
       approved: byTerm[term.id]?.APPROVED ?? 0,
       rejected: byTerm[term.id]?.REJECTED ?? 0,
     }));
-
-    const byProgramId = await prisma.studentProfile.groupBy({ by: ['programId'], _count: true });
     const approvedTotal = termSeries.reduce((sum, t) => sum + t.approved, 0);
 
-    const [campusLoad, strandMix, yearMix] = await Promise.all([
-      prisma.studentProfile.groupBy({ by: ['campusId'], _count: true }),
-      prisma.studentProfile.groupBy({ by: ['strand'], _count: true, orderBy: { _count: { strand: 'desc' } } }),
-      prisma.studentProfile.groupBy({ by: ['yearLevel'], _count: true, orderBy: { _count: { yearLevel: 'desc' } } }),
-    ]);
+    const programLoad = [];
+    const campusLoad = [];
+    const strandMix = [];
+    const yearMix = [];
+    for (const row of dims) {
+      if (row.dim === 'program') programLoad.push({ programId: row.k, _count: row.n });
+      else if (row.dim === 'campus') campusLoad.push({ campusId: row.k, _count: row.n });
+      else if (row.dim === 'strand') strandMix.push({ strand: row.k, _count: row.n });
+      else yearMix.push({ yearLevel: Number(row.k), _count: row.n });
+    }
 
     return ok(res, {
       totals: {
-        students,
-        programs,
-        campuses,
+        students: scalars[0].students,
+        programs: scalars[0].programs,
+        campuses: scalars[0].campuses,
         approvedEnrollments: approvedTotal,
         activeTerms: terms.filter((t) => t.isActive).length,
       },
       termSeries,
-      programLoad: byProgramId,
+      programLoad,
       campusLoad,
       strandMix,
       yearMix,
