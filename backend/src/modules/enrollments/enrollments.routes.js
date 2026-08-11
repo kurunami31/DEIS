@@ -48,7 +48,7 @@ router.get(
     const term = await prisma.term.findFirst({ where: { isActive: true }, orderBy: { startDate: 'desc' } });
     if (!term) return ok(res, { term: null, sections: [] });
 
-    const [sections, passed] = await Promise.all([
+    const [sections, passed, enrollmentItems] = await Promise.all([
       prisma.section.findMany({
         where: { termId: term.id, subject: { programId: student.programId } },
         include: {
@@ -61,16 +61,17 @@ router.get(
         where: { studentId: student.id, grade: { lte: 3.0 } },
         select: { section: { select: { subjectId: true } } },
       }),
+      // Seat counts are computed for the whole term in the same round trip;
+      // only the sections shown to this student are surfaced below.
+      prisma.enrollmentItem.findMany({
+        where: {
+          section: { termId: term.id },
+          request: { status: { in: ['PENDING', 'APPROVED'] } },
+        },
+        select: { sectionId: true },
+      }),
     ]);
     const passedSet = new Set(passed.map((p) => p.section.subjectId));
-
-    const enrollmentItems = await prisma.enrollmentItem.findMany({
-      where: {
-        sectionId: { in: sections.map((s) => s.id) },
-        request: { status: { in: ['PENDING', 'APPROVED'] } },
-      },
-      select: { sectionId: true },
-    });
     const filledSeats = enrollmentItems.reduce((acc, item) => {
       acc[item.sectionId] = (acc[item.sectionId] ?? 0) + 1;
       return acc;

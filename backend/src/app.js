@@ -6,6 +6,8 @@ import { config } from './config.js';
 import { notFoundHandler, errorHandler } from './middleware/error-handler.js';
 import { csrfGuard, isSameOrigin } from './middleware/auth.js';
 import { ForbiddenError } from './lib/http.js';
+import { readCache, writeCache, bustCache } from './lib/cache.js';
+import { verifyToken } from './lib/tokens.js';
 import { routes } from './routes/index.js';
 
 export function createApp() {
@@ -50,6 +52,40 @@ export function createApp() {
   });
   app.use(cookieParser());
   app.use(csrfGuard);
+
+  if (config.isProduction) {
+    app.use((req, res, next) => {
+      // Cache key is scoped to the authenticated user so one user's cached
+      // response can never leak to another. JWT verify is cheap (no DB call).
+      let identity = 'anon';
+      const token = req.cookies?.deis_session ?? (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7).trim() : null);
+      if (token) {
+        try {
+          identity = verifyToken(token).sub;
+        } catch {
+          identity = 'anon';
+        }
+      }
+      const key = `${identity}|${req.originalUrl}`;
+
+      if (req.method === 'GET' || req.method === 'HEAD') {
+        const hit = readCache(key);
+        if (hit) {
+          res.set('x-deis-cache', 'HIT');
+          return res.status(hit.status).json(hit.body);
+        }
+        const originalJson = res.json.bind(res);
+        res.json = (body) => {
+          if (res.statusCode >= 200 && res.statusCode < 400) writeCache(key, res.statusCode, body);
+          return originalJson(body);
+        };
+      } else {
+        // Any state change invalidates cached reads.
+        res.on('finish', bustCache);
+      }
+      next();
+    });
+  }
 
   if (!config.isTest) {
     app.use((req, res, next) => {
