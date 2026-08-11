@@ -89,7 +89,7 @@ export default function ActivatePage() {
                 <KeyRound size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   id="activationCode"
-                  className="input pl-9 font-mono uppercase tracking-[0.3em]"
+                  className="input !pl-9 font-mono uppercase tracking-[0.3em]"
                   value={activationCode}
                   onChange={(e) => setActivationCode(e.target.value)}
                   placeholder="••••••"
@@ -104,7 +104,7 @@ export default function ActivatePage() {
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  className="input pr-10"
+                  className="input !pr-10"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="At least 12 characters"

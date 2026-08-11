@@ -38,7 +38,7 @@ export default function StudentsPage() {
           <div className="relative flex-1">
             <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
-              className="input pl-9"
+              className="input !pl-9"
               placeholder="Search by name or student number…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
