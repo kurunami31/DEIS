@@ -68,6 +68,8 @@ export function getTestStudentId() {
 
 export async function cleanupTestData() {
   if (!testStudentId) return;
+  await prisma.clearanceSignoff.deleteMany({ where: { clearance: { studentId: testStudentId } } });
+  await prisma.studentClearance.deleteMany({ where: { studentId: testStudentId } });
   await prisma.enrollmentItem.deleteMany({ where: { request: { studentId: testStudentId } } });
   await prisma.enrollmentRequest.deleteMany({ where: { studentId: testStudentId } });
   await prisma.gradeRecord.deleteMany({ where: { studentId: testStudentId } });

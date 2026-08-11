@@ -47,7 +47,7 @@ router.get(
       where: { studentId_termId: { studentId, termId: term.id } },
       create: {
         studentId,
-        termId,
+        termId: term.id,
         signoffs: { create: templates.map((t) => ({ templateId: t.id })) },
       },
       update: {},
