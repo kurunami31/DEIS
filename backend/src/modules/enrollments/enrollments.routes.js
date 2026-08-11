@@ -152,7 +152,7 @@ router.post(
 router.get(
   '/',
   authenticate,
-  allowRoles('REGISTRAR', 'ADMIN'),
+  allowRoles('REGISTRAR', 'ADMIN', 'ADMISSION'),
   asyncHandler(async (req, res) => {
     const { status, termId } = req.query;
     const requests = await prisma.enrollmentRequest.findMany({
@@ -197,7 +197,7 @@ router.post(
 router.post(
   '/:id/review',
   authenticate,
-  allowRoles('REGISTRAR'),
+  allowRoles('REGISTRAR', 'ADMISSION'),
   validate(z.object({ id: z.string().uuid('Invalid request id') }), 'params'),
   validate(reviewSchema),
   asyncHandler(async (req, res) => {

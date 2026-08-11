@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { ShieldCheck, RotateCcw } from 'lucide-react';
 import { request } from '../../lib/api.js';
 import { useToast } from '../../context/ToastContext.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
+
+const OFFICE_ROLES = ['ACCOUNTING', 'ADMISSION', 'OSA', 'OHS', 'CASHIERING', 'OSCD', 'FAASG'];
 
 function statusMeta(status) {
   return status === 'CLEARED'
@@ -11,6 +14,8 @@ function statusMeta(status) {
 
 export default function ClearanceReviewPage() {
   const toast = useToast();
+  const { user } = useAuth();
+  const isOffice = OFFICE_ROLES.includes(user?.role);
   const [term, setTerm] = useState(null);
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState('');
@@ -78,7 +83,9 @@ export default function ClearanceReviewPage() {
               </div>
 
               <div className="mt-3 flex flex-wrap gap-2">
-                {c.signoffs.map((s) => (
+                {c.signoffs
+                  .filter((s) => !isOffice || s.template.ownerRole === user?.role)
+                  .map((s) => (
                   <button
                     key={s.id}
                     disabled={busyId === s.id}

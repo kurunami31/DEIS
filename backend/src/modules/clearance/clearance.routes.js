@@ -5,9 +5,12 @@ import { asyncHandler, ok, created } from '../../lib/http.js';
 import { validate } from '../../middleware/validate.js';
 import { authenticate, allowRoles, requireStudent } from '../../middleware/auth.js';
 import { audit } from '../../lib/audit.js';
-import { NotFoundError, UnprocessableError } from '../../lib/http.js';
+import { NotFoundError, UnprocessableError, ForbiddenError } from '../../lib/http.js';
+import { OFFICE_ROLES } from '../../lib/roles.js';
 
 const router = Router();
+
+const CLEARANCE_REVIEW_ROLES = ['REGISTRAR', 'ADMIN', ...OFFICE_ROLES];
 
 const signoffInclude = { include: { template: true, reviewedBy: { select: { fullName: true } } }, orderBy: { template: { code: 'asc' } } };
 
@@ -60,7 +63,7 @@ const listQuerySchema = z.object({ termId: z.string().uuid().optional(), status:
 router.get(
   '/',
   authenticate,
-  allowRoles('REGISTRAR', 'ADMIN'),
+  allowRoles(...CLEARANCE_REVIEW_ROLES),
   validate(listQuerySchema, 'query'),
   asyncHandler(async (req, res) => {
     const { termId, status, search } = req.validated.query;
@@ -95,14 +98,20 @@ router.get(
 router.patch(
   '/:id/signoff',
   authenticate,
-  allowRoles('REGISTRAR', 'ADMIN'),
+  allowRoles(...CLEARANCE_REVIEW_ROLES),
   validate(z.object({ id: z.string().uuid() }), 'params'),
   validate(z.object({ templateId: z.string().uuid(), status: z.enum(['PENDING', 'CLEARED']), note: z.string().trim().max(255).optional() })),
   asyncHandler(async (req, res) => {
     const signoff = await prisma.clearanceSignoff.findFirst({
       where: { clearanceId: req.params.id, templateId: req.body.templateId },
+      include: { template: true },
     });
     if (!signoff) throw new NotFoundError('Clearance item not found.');
+
+    // Offices may only sign the office that owns them; registrar/admin sign anything.
+    if (OFFICE_ROLES.includes(req.user.role) && signoff.template.ownerRole !== req.user.role) {
+      throw new ForbiddenError(`Your office (${req.user.role}) is only authorized to sign its own clearance items.`);
+    }
 
     await prisma.clearanceSignoff.update({
       where: { id: signoff.id },

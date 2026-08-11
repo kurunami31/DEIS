@@ -15,6 +15,13 @@ enum Role {
   FACULTY
   REGISTRAR
   ADMIN
+  ACCOUNTING
+  ADMISSION
+  OSA
+  OHS
+  CASHIERING
+  OSCD
+  FAASG
 }
 
 enum Sex {
@@ -364,14 +371,16 @@ model UniversityActivity {
 // ---------------------------------------------------------------------------
 
 model ClearanceTemplate {
-  id       String @id @default(uuid())
-  code     String @unique
-  label    String
-  category String // e.g. LIBRARY | FINANCE | DEPARTMENT | GUIDANCE | REGISTRAR
+  id        String  @id @default(uuid())
+  code      String  @unique
+  label     String
+  category  String  // e.g. LIBRARY | FINANCE | DEPARTMENT | GUIDANCE | REGISTRAR
+  ownerRole String? // staff role that owns this office's signoff, e.g. OSA | OHS; null = shared
 
   signoffs ClearanceSignoff[]
 
   @@index([category])
+  @@index([ownerRole])
 }
 
 model StudentClearance {

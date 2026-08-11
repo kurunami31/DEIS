@@ -220,6 +220,13 @@ async function main() {
       fullName: name,
       role: 'FACULTY',
     })),
+    { email: 'accounting@dorsu.edu.ph', fullName: 'Finance & Accounting Office', role: 'ACCOUNTING' },
+    { email: 'admission@dorsu.edu.ph', fullName: 'Office of Admission', role: 'ADMISSION' },
+    { email: 'osa@dorsu.edu.ph', fullName: 'Office of Student Affairs', role: 'OSA' },
+    { email: 'ohs@dorsu.edu.ph', fullName: 'Office of Health Services', role: 'OHS' },
+    { email: 'cashiering@dorsu.edu.ph', fullName: 'Cashiering Section', role: 'CASHIERING' },
+    { email: 'oscd@dorsu.edu.ph', fullName: 'Office of Student Counseling & Development', role: 'OSCD' },
+    { email: 'faasg@dorsu.edu.ph', fullName: 'Financial Aids & Scholarship Grants', role: 'FAASG' },
   ];
 
   const staffUsers = [];
@@ -467,10 +474,15 @@ async function main() {
   const clearanceTemplates = [];
   const clearanceDefs = [
     { code: 'LIB', label: 'University Library', category: 'LIBRARY' },
-    { code: 'FIN', label: 'Finance & Accounting Office', category: 'FINANCE' },
+    { code: 'FIN', label: 'Finance & Accounting Office', category: 'FINANCE', ownerRole: 'ACCOUNTING' },
     { code: 'DEP', label: 'Department / College', category: 'DEPARTMENT' },
-    { code: 'GUID', label: 'Guidance Office', category: 'GUIDANCE' },
+    { code: 'GUID', label: 'Guidance Office', category: 'GUIDANCE', ownerRole: 'OSCD' },
     { code: 'REG', label: 'Registrar', category: 'REGISTRAR' },
+    { code: 'ADM', label: 'Office of Admission', category: 'ADMISSION', ownerRole: 'ADMISSION' },
+    { code: 'OSA', label: 'Office of Student Affairs', category: 'STUDENT_AFFAIRS', ownerRole: 'OSA' },
+    { code: 'HEALTH', label: 'Office of Health Services', category: 'HEALTH', ownerRole: 'OHS' },
+    { code: 'CASH', label: 'Cashiering Section', category: 'CASHIER', ownerRole: 'CASHIERING' },
+    { code: 'SFA', label: 'Financial Aids & Scholarship Grants', category: 'SCHOLARSHIP', ownerRole: 'FAASG' },
   ];
   for (const def of clearanceDefs) {
     clearanceTemplates.push(

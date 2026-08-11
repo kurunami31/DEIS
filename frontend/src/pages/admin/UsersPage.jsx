@@ -8,6 +8,13 @@ const ROLES = [
   { value: 'FACULTY', label: 'Faculty' },
   { value: 'REGISTRAR', label: 'Registrar' },
   { value: 'ADMIN', label: 'Administrator' },
+  { value: 'ACCOUNTING', label: 'Accounting' },
+  { value: 'ADMISSION', label: 'Admission' },
+  { value: 'OSA', label: 'OSA' },
+  { value: 'OHS', label: 'Health Services' },
+  { value: 'CASHIERING', label: 'Cashiering' },
+  { value: 'OSCD', label: 'Guidance & Counseling' },
+  { value: 'FAASG', label: 'Financial Aids & Scholarships' },
 ];
 
 export default function UsersPage() {
@@ -181,6 +188,13 @@ function roleTone(role) {
     case 'ADMIN': return 'badge-purple';
     case 'REGISTRAR': return 'badge-orange';
     case 'FACULTY': return 'badge-blue';
+    case 'ACCOUNTING':
+    case 'CASHIERING':
+    case 'FAASG': return 'badge-orange';
+    case 'ADMISSION': return 'badge-blue';
+    case 'OSA':
+    case 'OSCD': return 'badge-purple';
+    case 'OHS': return 'badge-amber';
     default: return 'badge-gray';
   }
 }

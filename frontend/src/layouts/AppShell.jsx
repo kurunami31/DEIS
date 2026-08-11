@@ -35,17 +35,17 @@ const NAV_GROUPS = [
   },
   {
     label: 'Registration',
-    roles: ['REGISTRAR', 'ADMIN'],
+    roles: ['REGISTRAR', 'ADMIN', 'ADMISSION'],
     items: [
-      { to: '/review', label: 'Enrollment Requests', icon: Inbox, roles: ['REGISTRAR'] },
+      { to: '/review', label: 'Enrollment Requests', icon: Inbox, roles: ['REGISTRAR', 'ADMISSION'] },
       { to: '/students', label: 'Students', icon: Users },
-      { to: '/sections', label: 'Sections', icon: LayoutGrid },
-      { to: '/analytics', label: 'Analytics', icon: BarChart3 },
+      { to: '/sections', label: 'Sections', icon: LayoutGrid, roles: ['REGISTRAR', 'ADMIN'] },
+      { to: '/analytics', label: 'Analytics', icon: BarChart3, roles: ['REGISTRAR', 'ADMIN'] },
     ],
   },
   {
     label: 'Clearance',
-    roles: ['REGISTRAR', 'ADMIN'],
+    roles: ['REGISTRAR', 'ADMIN', 'ACCOUNTING', 'ADMISSION', 'OSA', 'OHS', 'CASHIERING', 'OSCD', 'FAASG'],
     items: [{ to: '/clearance-review', label: 'Clearance Review', icon: BadgeCheck }],
   },
   {
@@ -72,6 +72,11 @@ export default function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
+
+  // System accounts are managed centrally: they are shown by their role and
+  // their menu only offers Sign out (no profile editing / password change).
+  const isSystemAccount = user?.role === 'ADMIN' || user?.role === 'REGISTRAR';
+  const displayName = isSystemAccount ? user?.role : user?.fullName;
 
   const visibleGroups = NAV_GROUPS.filter((group) => !group.roles || group.roles.includes(user?.role));
 
@@ -245,60 +250,73 @@ export default function AppShell() {
                 aria-expanded={menuOpen}
               >
                 <span className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-accent-start to-accent-end text-xs font-bold text-white">
-                  {initials(user?.fullName)}
+                  {initials(displayName)}
                 </span>
-                <span className="hidden text-sm font-medium text-slate-700 sm:block">{user?.fullName}</span>
+                <span className="hidden text-sm font-medium text-slate-700 sm:block">{displayName}</span>
                 <ChevronDown size={15} className={`hidden text-slate-400 transition-transform sm:block ${menuOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {menuOpen && (
                 <div className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-[15px] border border-slate-200 bg-white py-1.5 shadow-lg" role="menu">
-                  <div className="border-b border-slate-100 px-4 py-3">
-                    <p className="truncate text-sm font-semibold text-slate-800">{user?.fullName}</p>
-                    <p className="truncate text-xs text-slate-400">{user?.email}</p>
-                  </div>
-                  <button
-                    role="menuitem"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      navigate('/profile');
-                    }}
-                    className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50"
-                  >
-                    <UserRound size={15} className="text-slate-400" />
-                    View profile
-                  </button>
-                  <button
-                    role="menuitem"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      navigate('/profile?tab=edit');
-                    }}
-                    className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50"
-                  >
-                    <UserCircle size={15} className="text-slate-400" />
-                    Edit profile
-                  </button>
-                  <button
-                    role="menuitem"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      navigate('/profile?tab=security');
-                    }}
-                    className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50"
-                  >
-                    <KeyRound size={15} className="text-slate-400" />
-                    Security
-                  </button>
-                  <div className="my-1.5 border-t border-slate-100" />
-                  <button
-                    role="menuitem"
-                    onClick={handleLogout}
-                    className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-red-600 transition-colors hover:bg-red-50"
-                  >
-                    <LogOut size={15} />
-                    Sign out
-                  </button>
+                  {isSystemAccount ? (
+                    <button
+                      role="menuitem"
+                      onClick={handleLogout}
+                      className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-red-600 transition-colors hover:bg-red-50"
+                    >
+                      <LogOut size={15} />
+                      Sign out
+                    </button>
+                  ) : (
+                    <>
+                      <div className="border-b border-slate-100 px-4 py-3">
+                        <p className="truncate text-sm font-semibold text-slate-800">{user?.fullName}</p>
+                        <p className="truncate text-xs text-slate-400">{user?.email}</p>
+                      </div>
+                      <button
+                        role="menuitem"
+                        onClick={() => {
+                          setMenuOpen(false);
+                          navigate('/profile');
+                        }}
+                        className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50"
+                      >
+                        <UserRound size={15} className="text-slate-400" />
+                        View profile
+                      </button>
+                      <button
+                        role="menuitem"
+                        onClick={() => {
+                          setMenuOpen(false);
+                          navigate('/profile?tab=edit');
+                        }}
+                        className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50"
+                      >
+                        <UserCircle size={15} className="text-slate-400" />
+                        Edit profile
+                      </button>
+                      <button
+                        role="menuitem"
+                        onClick={() => {
+                          setMenuOpen(false);
+                          navigate('/profile?tab=security');
+                        }}
+                        className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50"
+                      >
+                        <KeyRound size={15} className="text-slate-400" />
+                        Security
+                      </button>
+                      <div className="my-1.5 border-t border-slate-100" />
+                      <button
+                        role="menuitem"
+                        onClick={handleLogout}
+                        className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-red-600 transition-colors hover:bg-red-50"
+                      >
+                        <LogOut size={15} />
+                        Sign out
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>

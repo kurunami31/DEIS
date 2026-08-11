@@ -10,19 +10,21 @@ import { ConflictError, NotFoundError, UnprocessableError } from '../../lib/http
 
 const router = Router();
 
+const STAFF_ROLES = ['FACULTY', 'REGISTRAR', 'ADMIN', 'ACCOUNTING', 'ADMISSION', 'OSA', 'OHS', 'CASHIERING', 'OSCD', 'FAASG'];
+
 const userCreateSchema = z
   .object({
     fullName: z.string().min(2).max(100),
     email: z.string().email(),
-    role: z.enum(['FACULTY', 'REGISTRAR', 'ADMIN']),
+    role: z.enum(STAFF_ROLES),
   })
   .superRefine((data, ctx) => {
-    // Faculty accounts use their school email so staff identity is verifiable.
-    if (data.role === 'FACULTY' && !data.email.toLowerCase().endsWith('@dorsu.edu.ph')) {
+    // Staff accounts use their school email so staff identity is verifiable.
+    if (data.role !== 'ADMIN' && !data.email.toLowerCase().endsWith('@dorsu.edu.ph')) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['email'],
-        message: 'Faculty accounts must use their school email (name@dorsu.edu.ph).',
+        message: 'Staff accounts must use their school email (name@dorsu.edu.ph).',
       });
     }
   });

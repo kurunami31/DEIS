@@ -154,7 +154,7 @@ const listQuerySchema = z.object({
 router.get(
   '/',
   authenticate,
-  allowRoles('REGISTRAR', 'ADMIN'),
+  allowRoles('REGISTRAR', 'ADMIN', 'ADMISSION'),
   validate(listQuerySchema, 'query'),
   asyncHandler(async (req, res) => {
     const { page, pageSize, programId, campusId, yearLevel, search } = req.validated.query;
@@ -192,7 +192,7 @@ router.get(
 router.get(
   '/:id',
   authenticate,
-  allowRoles('REGISTRAR', 'ADMIN'),
+  allowRoles('REGISTRAR', 'ADMIN', 'ADMISSION'),
   validate(z.object({ id: z.string().uuid() }), 'params'),
   asyncHandler(async (req, res) => {
     const student = await prisma.studentProfile.findUnique({

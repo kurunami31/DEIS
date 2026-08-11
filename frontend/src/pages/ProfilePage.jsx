@@ -6,7 +6,19 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { formatDate } from '../lib/utils.js';
 
-const ROLE_LABEL = { STUDENT: 'Student', FACULTY: 'Faculty', REGISTRAR: 'Registrar', ADMIN: 'Administrator' };
+const ROLE_LABEL = {
+  STUDENT: 'Student',
+  FACULTY: 'Faculty',
+  REGISTRAR: 'Registrar',
+  ADMIN: 'Administrator',
+  ACCOUNTING: 'Accounting',
+  ADMISSION: 'Admission',
+  OSA: 'OSA',
+  OHS: 'Health Services',
+  CASHIERING: 'Cashiering',
+  OSCD: 'Guidance & Counseling',
+  FAASG: 'Financial Aids & Scholarships',
+};
 
 const SPF_STEPS = [
   { id: 'admission', label: 'Admission', icon: GraduationCap },
@@ -670,7 +682,19 @@ function Field({ label, value, mono = false, valueClass = '' }) {
   );
 }
 
-const ROLE_BADGE = { ADMIN: 'badge-purple', REGISTRAR: 'badge-orange', FACULTY: 'badge-blue', STUDENT: 'badge-green' };
+const ROLE_BADGE = {
+  ADMIN: 'badge-purple',
+  REGISTRAR: 'badge-orange',
+  FACULTY: 'badge-blue',
+  STUDENT: 'badge-green',
+  ACCOUNTING: 'badge-orange',
+  ADMISSION: 'badge-blue',
+  OSA: 'badge-purple',
+  OHS: 'badge-amber',
+  CASHIERING: 'badge-orange',
+  OSCD: 'badge-purple',
+  FAASG: 'badge-blue',
+};
 
 function initialsOf(name = '') {
   return name

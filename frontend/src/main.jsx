@@ -75,14 +75,14 @@ export default function App() {
                 <Route path="requests" element={<RequireAuth roles={['STUDENT']}><MyRequestsPage /></RequireAuth>} />
                 <Route path="grades" element={<RequireAuth roles={['STUDENT']}><MyGradesPage /></RequireAuth>} />
                 <Route path="clearance" element={<RequireAuth roles={['STUDENT']}><ClearancePage /></RequireAuth>} />
-                <Route path="clearance-review" element={<RequireAuth roles={['REGISTRAR', 'ADMIN']}><ClearanceReviewPage /></RequireAuth>} />
+                <Route path="clearance-review" element={<RequireAuth roles={['REGISTRAR', 'ADMIN', 'ACCOUNTING', 'ADMISSION', 'OSA', 'OHS', 'CASHIERING', 'OSCD', 'FAASG']}><ClearanceReviewPage /></RequireAuth>} />
                 <Route path="calendar" element={<RequireAuth><CalendarPage /></RequireAuth>} />
 
                 <Route path="my-sections" element={<RequireAuth roles={['FACULTY']}><FacultySectionsPage /></RequireAuth>} />
                 <Route path="sections/:sectionId/grades" element={<RequireAuth roles={['FACULTY']}><GradeEntryPage /></RequireAuth>} />
 
-                <Route path="review" element={<RequireAuth roles={['REGISTRAR']}><RequestsPage /></RequireAuth>} />
-                <Route path="students" element={<RequireAuth roles={['REGISTRAR', 'ADMIN']}><StudentsPage /></RequireAuth>} />
+                <Route path="review" element={<RequireAuth roles={['REGISTRAR', 'ADMISSION']}><RequestsPage /></RequireAuth>} />
+                <Route path="students" element={<RequireAuth roles={['REGISTRAR', 'ADMIN', 'ADMISSION']}><StudentsPage /></RequireAuth>} />
                 <Route path="sections" element={<RequireAuth roles={['REGISTRAR', 'ADMIN']}><SectionsPage /></RequireAuth>} />
                 <Route path="analytics" element={<RequireAuth roles={['REGISTRAR', 'ADMIN']}><AnalyticsPage /></RequireAuth>} />
 
