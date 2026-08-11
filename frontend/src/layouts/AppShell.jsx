@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { Logo } from '../components/Logo.jsx';
 import ChatWidget from '../components/ChatWidget.jsx';
 import { initials } from '../lib/utils.js';
+import { request } from '../lib/api.js';
 
 const NAV_GROUPS = [
   {
@@ -72,6 +73,22 @@ export default function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
+
+  // Warm the pages the user is most likely to open next, so the first click
+  // into any service renders instantly (server + client caches are primed).
+  useEffect(() => {
+    const role = user?.role;
+    if (!role) return;
+    const urls =
+      role === 'STUDENT'
+        ? ['/enrollments/available-sections', '/enrollments/my', '/clearances/my']
+        : role === 'FACULTY'
+          ? ['/sections/my']
+          : ['ACCOUNTING', 'ADMISSION', 'OSA', 'OHS', 'CASHIERING', 'OSCD', 'FAASG'].includes(role)
+            ? ['/clearances']
+            : [];
+    for (const url of urls) request({ url }).catch(() => {});
+  }, [user?.role]);
 
   // System accounts are managed centrally: they are shown by their role and
   // their menu only offers Sign out (no profile editing / password change).
