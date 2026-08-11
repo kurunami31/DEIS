@@ -7,9 +7,9 @@ export const app = createApp();
 export const api = request(app);
 
 export const STAFF_PASSWORD = 'Dorsu@2025!';
-export const TEST_STUDENT_NO = 'TST-2025-0001';
+export const TEST_STUDENT_NO = '2025-9999';
 export const TEST_ACTIVATION_CODE = '987654';
-export const TEST_STUDENT_PASSWORD = 'DorsuTest@123';
+export const TEST_STUDENT_PASSWORD = 'DorsuTest@123!';
 
 let testStudentId = null;
 let testUserId = null;
@@ -37,6 +37,7 @@ export async function createUnactivatedStudent() {
       programId: program.id,
       campusId: campus.id,
       activationCode: TEST_ACTIVATION_CODE,
+      spfCompletedAt: new Date(), // enrollment tests exercise review flow, not the SPF gate
     },
   });
   testStudentId = student.id;

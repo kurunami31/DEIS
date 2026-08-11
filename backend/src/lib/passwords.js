@@ -10,7 +10,7 @@ export function verifyPassword(plain, hash) {
   return bcrypt.compare(plain, hash);
 }
 
-// DOrSU student number format: D-YYYY-NNNN
+// DOrSU student number format: YYYY-NNNN
 export function normalizeStudentNo(value) {
   return value.trim().toUpperCase();
 }

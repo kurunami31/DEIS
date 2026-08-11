@@ -3,6 +3,7 @@ import { prisma } from '../../lib/prisma.js';
 import { asyncHandler, ok, created } from '../../lib/http.js';
 import { validate } from '../../middleware/validate.js';
 import { authenticate, allowRoles } from '../../middleware/auth.js';
+import { audit } from '../../lib/audit.js';
 import { z } from 'zod';
 
 const router = Router();
@@ -105,6 +106,37 @@ router.post(
       });
     });
     return created(res, term);
+  }),
+);
+
+router.patch(
+  '/terms/:id',
+  authenticate,
+  allowRoles('ADMIN'),
+  validate(z.object({ id: z.string().uuid() }), 'params'),
+  validate(
+    z.object({
+      isActive: z.boolean().optional(),
+      enrollmentOpen: z.boolean().optional(),
+    }),
+  ),
+  asyncHandler(async (req, res) => {
+    const { isActive, enrollmentOpen } = req.body;
+    const updates = await prisma.$transaction(async (tx) => {
+      if (isActive === true) {
+        await tx.term.updateMany({ data: { isActive: false } });
+        await tx.term.update({ where: { id: req.params.id }, data: { isActive: true } });
+      } else if (isActive === false) {
+        await tx.term.update({ where: { id: req.params.id }, data: { isActive: false } });
+      }
+      if (enrollmentOpen !== undefined) {
+        await tx.term.update({ where: { id: req.params.id }, data: { enrollmentOpen } });
+      }
+      return tx.term.findUnique({ where: { id: req.params.id } });
+    });
+    if (!updates) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Term not found' } });
+    await audit({ actorId: req.user.id, action: 'TERM_UPDATED', entityType: 'term', entityId: req.params.id });
+    return ok(res, updates);
   }),
 );
 

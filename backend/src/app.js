@@ -1,17 +1,38 @@
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import { config } from './config.js';
 import { notFoundHandler, errorHandler } from './middleware/error-handler.js';
+import { csrfGuard } from './middleware/auth.js';
 import { routes } from './routes/index.js';
 
 export function createApp() {
   const app = express();
 
   app.set('trust proxy', 1);
+  app.set('corsOrigins', config.corsOrigins);
   app.disable('x-powered-by');
 
-  app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:'],
+          connectSrc: ["'self'", ...config.corsOrigins],
+          objectSrc: ["'none'"],
+          baseUri: ["'self'"],
+          formAction: ["'self'"],
+          frameAncestors: ["'none'"],
+        },
+      },
+      referrerPolicy: { policy: 'no-referrer' },
+    }),
+  );
   app.use(
     cors({
       origin(origin, cb) {
@@ -21,6 +42,8 @@ export function createApp() {
       credentials: true,
     }),
   );
+  app.use(cookieParser());
+  app.use(csrfGuard);
 
   if (!config.isTest) {
     app.use((req, res, next) => {

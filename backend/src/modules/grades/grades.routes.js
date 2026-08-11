@@ -39,9 +39,9 @@ router.put(
 
     const roster = await prisma.enrollmentItem.findMany({
       where: { sectionId: section.id, request: { status: { in: ['PENDING', 'APPROVED'] } } },
-      select: { studentId: true },
+      select: { request: { select: { studentId: true } } },
     });
-    const rosterIds = new Set(roster.map((r) => r.studentId));
+    const rosterIds = new Set(roster.map((r) => r.request.studentId));
     const submittedIds = new Set(req.body.records.map((r) => r.studentId));
 
     // Never allow grading a student who is not on the roster.
@@ -107,7 +107,6 @@ router.post(
         where: { sectionId: section.id },
         data: { status: 'FINALIZED' },
       }),
-      prisma.section.update({ where: { id: section.id }, data: { status: 'FINALIZED' } }),
     ]);
 
     await audit({ actorId: req.user.id, action: 'SECTION_FINALIZED', entityType: 'section', entityId: section.id });

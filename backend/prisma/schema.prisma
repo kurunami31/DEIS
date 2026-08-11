@@ -46,16 +46,31 @@ model User {
   role               Role     @default(STUDENT)
   mustChangePassword Boolean  @default(false)
   isActive           Boolean  @default(true)
+  tokenVersion       Int      @default(0)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  student          StudentProfile?
-  facultySections  Section[]          @relation("FacultySections")
-  reviewedRequests EnrollmentRequest[] @relation("ReviewedRequests")
-  gradeRecords     GradeRecord[]       @relation("GradedRecords")
-  activities       ActivityRecord[]
+  student           StudentProfile?
+  facultySections   Section[]           @relation("FacultySections")
+  reviewedRequests  EnrollmentRequest[] @relation("ReviewedRequests")
+  gradeRecords      GradeRecord[]       @relation("GradedRecords")
+  clearanceReviews  ClearanceSignoff[]  @relation("ClearanceReviewer")
+  activities        ActivityRecord[]
+  passwordHistory   UserPasswordHistory[]
+  universityActivities UniversityActivity[]
 
   @@index([role])
+}
+
+model UserPasswordHistory {
+  id           String   @id @default(uuid())
+  userId       String
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 model StudentProfile {
@@ -72,12 +87,82 @@ model StudentProfile {
   activationCode String   @unique
   enrolledAt     DateTime @default(now())
 
+  // I. Application for Admission (Student Profile Form FM-DOrSU-ODI-05)
+  applicantType     String? // FIRST_YEAR | TRANSFEREE | RETURNEE
+  lrn               String?
+  preferredCourse1  String?
+  preferredCourse2  String?
+  preferredCourse3  String?
+  admissionTerm     String? // e.g. "1st Semester, AY 2025-2026"
+
+  // II. Personal Information
+  middleName           String?
+  dateOfBirth          DateTime?
+  placeOfBirthCity     String?
+  placeOfBirthProvince String?
+  placeOfBirthCountry  String?
+  civilStatus          String? // SINGLE | MARRIED | WIDOWED | SEPARATED
+  citizenship          String?
+  heightFt             String?
+  weightKg             String?
+  religion             String?
+  tribe                String?
+  personalEmail        String?
+  contactNumber        String?
+  permanentAddress     String?
+  zipCode              String?
+  photo                String? // base64 2x2 ID photo, <= 1MB
+
+  // III. Family Background
+  spouseName          String?
+  spouseOccupation    String?
+  numberOfChildren    Int?
+  fatherName          String?
+  fatherOccupation    String?
+  fatherContact       String?
+  motherName          String?
+  motherOccupation    String?
+  motherContact       String?
+  parentsStatus       String? // LIVING_TOGETHER | PERMANENTLY_SEPARATED | ANNULLED | TEMPORARILY_SEPARATED | FATHER_OTHER_PARTNER | MOTHER_OTHER_PARTNER
+  monthlyFamilyIncome String?
+  emergencyName       String?
+  emergencyContact    String?
+  emergencyAddress    String?
+
+  // IV. SCAS Result (index per aptitude)
+  scasGeneral        Decimal? @db.Decimal(5, 2)
+  scasSpatial        Decimal? @db.Decimal(5, 2)
+  scasVerbal         Decimal? @db.Decimal(5, 2)
+  scasPerceptual     Decimal? @db.Decimal(5, 2)
+  scasNumerical      Decimal? @db.Decimal(5, 2)
+  scasManualDexterity Decimal? @db.Decimal(5, 2)
+
+  // V. Unique Features
+  hobbies        String?
+  motto          String?
+  specialSkills  String?
+  specialInterests String?
+
+  // VI. Educational Background
+  elementarySchool     String?
+  elementaryYear       String?
+  shsSchool            String?
+  shsStrand            String?
+  shsYear              String?
+  vocationalCourse     String?
+  vocationalYear       String?
+  collegeDegree        String?
+  collegeYear          String?
+
+  spfCompletedAt DateTime?
+
   user    User?   @relation(fields: [userId], references: [id])
   program Program @relation(fields: [programId], references: [id])
   campus  Campus  @relation(fields: [campusId], references: [id])
 
   enrollmentRequests EnrollmentRequest[]
   grades             GradeRecord[]
+  clearances         StudentClearance[]
 }
 
 model Campus {
@@ -158,6 +243,7 @@ model Term {
 
   sections Section[]
   requests EnrollmentRequest[]
+  clearances StudentClearance[]
 
   @@index([isActive])
 }
@@ -250,4 +336,73 @@ model ActivityRecord {
   actor User? @relation(fields: [actorId], references: [id])
 
   @@index([actorId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// University calendar
+// ---------------------------------------------------------------------------
+
+model UniversityActivity {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  startsAt    DateTime
+  endsAt      DateTime?
+  location    String?
+  type        String   @default("ACADEMIC") // ACADEMIC | ADMINISTRATIVE | CULTURAL | SPORTS | OTHER
+  audience    String   @default("ALL") // ALL | STUDENTS | FACULTY | ADMIN
+  createdById String
+  createdAt   DateTime @default(now())
+
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  @@index([startsAt])
+}
+
+// ---------------------------------------------------------------------------
+// Clearance
+// ---------------------------------------------------------------------------
+
+model ClearanceTemplate {
+  id       String @id @default(uuid())
+  code     String @unique
+  label    String
+  category String // e.g. LIBRARY | FINANCE | DEPARTMENT | GUIDANCE | REGISTRAR
+
+  signoffs ClearanceSignoff[]
+
+  @@index([category])
+}
+
+model StudentClearance {
+  id        String   @id @default(uuid())
+  studentId String
+  termId    String
+  status    String   @default("IN_PROGRESS") // IN_PROGRESS | CLEARED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student  StudentProfile      @relation(fields: [studentId], references: [id])
+  term     Term                @relation(fields: [termId], references: [id])
+  signoffs ClearanceSignoff[]
+
+  @@unique([studentId, termId])
+  @@index([termId, status])
+}
+
+model ClearanceSignoff {
+  id                  String   @id @default(uuid())
+  clearanceId         String
+  templateId          String
+  status              String   @default("PENDING") // PENDING | CLEARED
+  note                String?
+  reviewedById        String?
+  reviewedAt          DateTime?
+
+  clearance StudentClearance @relation(fields: [clearanceId], references: [id])
+  template  ClearanceTemplate @relation(fields: [templateId], references: [id])
+  reviewedBy User?            @relation("ClearanceReviewer", fields: [reviewedById], references: [id])
+
+  @@unique([clearanceId, templateId])
+  @@index([templateId, status])
 }

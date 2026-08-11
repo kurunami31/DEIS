@@ -317,6 +317,15 @@ async function main() {
   console.log(`Seeded ${sectionByTermSubject.size} sections across terms`);
 
   /* ---------------------------------------- Students --------------------- */
+  // Student number format: YYYY-NNNN (year enrolled - random 4-digit suffix).
+  // A deterministic shuffle of the 0001..0032 pool keeps the demo stable
+  // while still looking random; 9999 is reserved for automated tests.
+  const studentNoPool = Array.from({ length: FULL_NAMES.length }, (_, idx) => pad(idx + 1, 4));
+  for (let i = studentNoPool.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rand() * (i + 1));
+    [studentNoPool[i], studentNoPool[j]] = [studentNoPool[j], studentNoPool[i]];
+  }
+
   const studentRecords = [];
   for (let i = 0; i < FULL_NAMES.length; i += 1) {
     const [firstName, ...rest] = FULL_NAMES[i].split(' ');
@@ -326,7 +335,7 @@ async function main() {
 
     const student = await prisma.studentProfile.create({
       data: {
-        studentNo: `D-2025-${pad(i + 1, 4)}`,
+        studentNo: `2025-${studentNoPool[i]}`,
         firstName,
         lastName,
         sex: i % 2 === 0 ? 'MALE' : 'FEMALE',
@@ -442,12 +451,66 @@ async function main() {
     console.log(`Scenario ${i}: ${record.fullName} -> ${status} (${request.id})`);
   }
 
+  /* ----------------------------- Clearance -------------------------------- */
+  const clearanceTemplates = [];
+  const clearanceDefs = [
+    { code: 'LIB', label: 'University Library', category: 'LIBRARY' },
+    { code: 'FIN', label: 'Finance & Accounting Office', category: 'FINANCE' },
+    { code: 'DEP', label: 'Department / College', category: 'DEPARTMENT' },
+    { code: 'GUID', label: 'Guidance Office', category: 'GUIDANCE' },
+    { code: 'REG', label: 'Registrar', category: 'REGISTRAR' },
+  ];
+  for (const def of clearanceDefs) {
+    clearanceTemplates.push(
+      await prisma.clearanceTemplate.upsert({
+        where: { code: def.code },
+        create: def,
+        update: {},
+      }),
+    );
+  }
+  for (const record of studentRecords) {
+    const cutoff = new Date(activeTerm.start);
+    const hasApproved = ACTIVE_SCENARIOS[studentRecords.indexOf(record)] === 'APPROVED';
+    await prisma.studentClearance.create({
+      data: {
+        studentId: record.student.id,
+        termId: termRecords[activeTerm.code].id,
+        status: hasApproved ? 'CLEARED' : 'IN_PROGRESS',
+        signoffs: {
+          create: clearanceTemplates.map((t, idx) => ({
+            templateId: t.id,
+            status: hasApproved ? 'CLEARED' : idx === 0 ? 'CLEARED' : 'PENDING',
+            reviewedById: hasApproved ? registrar.id : idx === 0 ? registrar.id : null,
+            reviewedAt: new Date(cutoff.getTime() + 86400000 + idx * 3600000),
+          })),
+        },
+      },
+    });
+  }
+  console.log('Seeded clearance templates and records');
+
+  /* ----------------------------- Calendar --------------------------------- */
+  const activeStart = new Date(activeTerm.start).getTime();
+  const calDefs = [
+    { title: 'Term Opening Program', type: 'ACADEMIC', audience: 'ALL', startsAt: new Date(activeStart), endsAt: new Date(activeStart + 2 * 3600000), location: 'DOrSU Gymnasium' },
+    { title: 'Intramurals Week', type: 'SPORTS', audience: 'ALL', startsAt: new Date(activeStart + 7 * 86400000), endsAt: new Date(activeStart + 11 * 86400000), location: 'Campus Oval' },
+    { title: 'STUDENT AFFAIRS: Foundation Day', type: 'CULTURAL', audience: 'ALL', startsAt: new Date(activeStart + 20 * 86400000), endsAt: new Date(activeStart + 20 * 86400000 + 6 * 3600000), location: 'University Quadrangle' },
+    { title: 'Clearance Filing Opens', type: 'ADMINISTRATIVE', audience: 'STUDENTS', startsAt: new Date(activeStart + 15 * 86400000), location: 'Registrar Office' },
+  ];
+  for (const def of calDefs) {
+    await prisma.universityActivity.create({
+      data: { ...def, description: null, createdById: registrar.id },
+    });
+  }
+  if (calDefs.length) console.log('Seeded calendar activities');
+
   console.log('Seed completed');
   console.log('Demo accounts:');
   console.log('  registrar@dorsu.edu.ph / Dorsu@2025!');
   console.log('  admin@dorsu.edu.ph / Dorsu@2025!');
   console.log('  faculty1@dorsu.edu.ph .. faculty6@dorsu.edu.ph / Dorsu@2025!');
-  console.log('  Students: D-2025-0001 .. D-2025-0032 (activate with their login code returned by the verify screen)');
+  console.log('  Students: 2025-XXXX (activate with their login code returned by the verify screen)');
 }
 
 main()

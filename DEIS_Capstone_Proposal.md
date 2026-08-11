@@ -259,4 +259,24 @@ Valdez, J., et al. (2023). Automated enrollment and grade encoding system for a 
 
 ---
 
+## Appendix A: Implemented Modules Beyond the Original Scope
+
+The following modules were integrated during system implementation to complete the digitized enrollment cycle described in the objectives.
+
+**A.1 Digitized Student Profile Form (SPF).** The paper Student Profile Form (FM-DOrSU-ODI-05) is reproduced as a multi-section web form (application for admission, personal information, family background, SCAS aptitude indices, educational background). The system enforces form completion before a first-time student can submit an enrollment request, replacing the paper-and-queue intake process.
+
+**A.2 Clearance Module.** A per-term clearance record is generated for every enrolled student, with sign-off items for the University Library, Finance & Accounting, Department/College, Guidance, and Registrar offices. Students track progress as a completion percentage; the Registrar clears or reopens individual items. Fully signed records are marked CLEARED.
+
+**A.3 Calendar of Activities.** A university-wide activity calendar supports month-grid and list views, audience targeting (all, students, faculty, admin), and activity management by the Registrar and Administrator.
+
+**A.4 AI Enrollment Assistant.** An in-app chat widget answers enrollment questions using the Groq LLM API. Prompts are augmented with the signed-in user's live context (active term, enrollment window, clearance status, GWA, upcoming activities) so answers are personal rather than generic. When no API key is configured, the service falls back to an offline rule-based responder over the same endpoint; chat input is not persisted or used for training.
+
+**A.5 Security Hardening.** Beyond the proposed JWT + bcrypt baseline, the implemented system adds HTTP-only session cookies for JWTs, per-route rate limiting, account lockout after repeated failed logins, token versioning that invalidates all sessions on password change, an enforced 12-character password policy with history checks, and security response headers.
+
+**A.6 Student Number Format.** Student identifiers follow the format *YYYY-NNNN* (admission year, four-digit sequence — e.g., 2025-0001), replacing arbitrary identifiers and matching the university's public ID convention.
+
+**A.7 Verification.** The backend is validated by 20 automated integration tests covering authentication, enrollment validation, and grading flows, in addition to seed-data smoke tests of every module.
+
+---
+
 *End of the DEIS capstone proposal.*

@@ -114,6 +114,17 @@ router.post(
     const term = await prisma.term.findFirst({ where: { isActive: true }, orderBy: { startDate: 'desc' } });
     if (!term) return res.status(422).json({ error: { code: 'NO_ACTIVE_TERM', message: 'No active term is configured yet.' } });
 
+    // Enrollment gate: the Student Profile Form must be completed first.
+    if (!student.spfCompletedAt) {
+      return res.status(422).json({
+        error: {
+          code: 'SPF_REQUIRED',
+          message: 'Complete your Student Profile Form before enrolling.',
+          details: [{ field: 'spf', message: 'Student Profile Form (FM-DOrSU-ODI-05) must be submitted first.' }],
+        },
+      });
+    }
+
     const issues = await validateEnrollment(student.id, term.id, req.body.sections);
     if (issues.length > 0) {
       return res.status(422).json({ error: { code: 'ENROLLMENT_RULES', message: 'Enrollment rules not satisfied', details: issues } });
@@ -154,6 +165,32 @@ router.get(
       take: 300,
     });
     return ok(res, requests);
+  }),
+);
+
+router.post(
+  '/:id/withdraw',
+  authenticate,
+  requireStudent,
+  validate(z.object({ id: z.string().uuid('Invalid request id') }), 'params'),
+  asyncHandler(async (req, res) => {
+    const student = await prisma.studentProfile.findUnique({ where: { userId: req.user.id } });
+    const request = await prisma.enrollmentRequest.findUnique({ where: { id: req.params.id } });
+    if (!request) return ok(res, null);
+    if (request.studentId !== student.id) return ok(res, null);
+
+    if (request.status !== 'PENDING') {
+      return res.status(409).json({ error: { code: 'ALREADY_REVIEWED', message: 'Only pending requests can be withdrawn.' } });
+    }
+
+    const updated = await prisma.enrollmentRequest.update({
+      where: { id: request.id },
+      data: { status: 'WITHDRAWN' },
+      include: buildRequestInclude(),
+    });
+
+    await audit({ actorId: req.user.id, action: 'ENROLLMENT_WITHDRAWN', entityType: 'enrollment', entityId: request.id });
+    return ok(res, updated);
   }),
 );
 

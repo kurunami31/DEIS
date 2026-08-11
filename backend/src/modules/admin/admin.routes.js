@@ -14,7 +14,14 @@ const userCreateSchema = z.object({
   fullName: z.string().min(2).max(100),
   email: z.string().email(),
   role: z.enum(['FACULTY', 'REGISTRAR', 'ADMIN']),
-  defaultPassword: z.string().min(10).max(72),
+  defaultPassword: z
+    .string()
+    .min(12, 'Password must be at least 12 characters')
+    .max(72)
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number')
+    .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
 });
 
 router.get(
@@ -45,13 +52,15 @@ router.post(
   allowRoles('ADMIN'),
   validate(userCreateSchema),
   asyncHandler(async (req, res) => {
+    const passwordHash = await hashPassword(req.body.defaultPassword);
     const user = await prisma.user.create({
       data: {
         fullName: req.body.fullName,
         email: req.body.email.toLowerCase(),
         role: req.body.role,
-        passwordHash: await hashPassword(req.body.defaultPassword),
+        passwordHash,
         mustChangePassword: true,
+        passwordHistory: { create: { passwordHash } },
       },
       select: { id: true, fullName: true, email: true, role: true },
     });

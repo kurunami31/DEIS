@@ -1,9 +1,12 @@
-import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma.js';
 import { UnauthorizedError, ForbiddenError } from '../lib/http.js';
-import { config } from '../config.js';
+import { verifyToken } from '../lib/tokens.js';
+
+const SESSION_COOKIE = 'deis_session';
 
 function extractToken(req) {
+  const fromCookie = req.cookies?.[SESSION_COOKIE];
+  if (fromCookie) return fromCookie;
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) return null;
   return header.slice('Bearer '.length).trim();
@@ -15,7 +18,7 @@ export async function authenticate(req, res, next) {
 
   let payload;
   try {
-    payload = jwt.verify(token, config.jwtSecret, { issuer: 'deis-api' });
+    payload = verifyToken(token);
   } catch (err) {
     const message = err.name === 'TokenExpiredError' ? 'Session expired, please login again' : 'Invalid access token';
     return next(new UnauthorizedError(message));
@@ -29,6 +32,9 @@ export async function authenticate(req, res, next) {
   });
 
   if (!user || !user.isActive) return next(new UnauthorizedError('Account no longer active'));
+  if (user.tokenVersion !== (payload.ver ?? 0)) {
+    return next(new UnauthorizedError('Session revoked. Please login again'));
+  }
   if (user.mustChangePassword) {
     return next(new ForbiddenError('You must set a new password before continuing', { code: 'MUST_CHANGE_PASSWORD' }));
   }
@@ -48,4 +54,16 @@ export const allowRoles = (...roles) => (req, res, next) => {
 export function requireStudent(req, res, next) {
   if (!req.user.student) return next(new ForbiddenError('Student profile is required'));
   next();
+}
+
+// CSRF guard for cookie-authenticated state changes. The browser's SameSite=Strict
+// cookie already blocks cross-site sends; this is defense in depth for the case
+// where a strict cookie is bypassed (older clients / non-compliant browsers).
+export function csrfGuard(req, res, next) {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+  const origin = req.headers.origin;
+  if (!origin) return next();
+  const allowed = req.app.get('corsOrigins') ?? [];
+  if (allowed.includes(origin)) return next();
+  return next(new ForbiddenError('Cross-site request blocked'));
 }

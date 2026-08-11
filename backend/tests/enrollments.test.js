@@ -8,7 +8,7 @@ describe('enrollments', () => {
 
   beforeAll(async () => {
     await createTestStudent();
-    studentId = (await prisma.studentProfile.findUnique({ where: { studentNo: 'TST-2025-0001' } })).id;
+    studentId = (await prisma.studentProfile.findUnique({ where: { studentNo: '2025-9999' } })).id;
     activeTermId = (await prisma.term.findFirst({ where: { isActive: true } })).id;
   });
 

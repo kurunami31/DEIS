@@ -8,6 +8,8 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   JWT_EXPIRES_IN: z.string().default('8h'),
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
+  GROQ_API_KEY: z.string().optional(),
+  GROQ_MODEL: z.string().default('llama-3.3-70b-versatile'),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -27,4 +29,6 @@ export const config = {
   corsOrigins: parsed.data.CORS_ORIGIN.split(',').map((s) => s.trim()).filter(Boolean),
   isProduction: parsed.data.NODE_ENV === 'production',
   isTest: parsed.data.NODE_ENV === 'test',
+  groqApiKey: parsed.data.GROQ_API_KEY,
+  groqModel: parsed.data.GROQ_MODEL,
 };
