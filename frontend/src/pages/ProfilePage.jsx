@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { BookOpen, CheckCircle2, GraduationCap, HeartHandshake, KeyRound, ShieldCheck, UserRound, Users } from 'lucide-react';
+import { BookOpen, CheckCircle2, GraduationCap, HeartHandshake, KeyRound, Lock, ShieldCheck, UserRound, Users } from 'lucide-react';
 import { request } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
@@ -542,6 +542,20 @@ function SecurityTab({ user, setUser }) {
       setChanging(false);
     }
   };
+
+  if (user.role === 'ADMIN') {
+    return (
+      <section className="card card-pad max-w-xl">
+        <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-600">
+          <Lock size={15} className="text-primary-600" /> Password
+        </h3>
+        <p className="mt-2 rounded-lg border border-primary-100 bg-primary-50 px-3 py-2 text-xs text-primary-700">
+          The administrator account is system-managed. Its password is set during provisioning
+          and cannot be changed from the portal.
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section className="card card-pad max-w-xl">

@@ -1,0 +1,14 @@
+{
+  "name": "deis",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "DEIS - DOrSU Enrollment Information System (Vercel deployment root)",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "npm --prefix frontend run build",
+    "postinstall": "npm --prefix frontend install && npm --prefix backend install"
+  }
+}

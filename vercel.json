@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "framework": null,
+  "buildCommand": "npm run build && npm --prefix backend exec prisma generate",
+  "installCommand": "npm install",
+  "outputDirectory": "frontend/dist",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index" }
+  ],
+  "functions": {
+    "api/index.mjs": {
+      "includeFiles": "backend/node_modules/.prisma/**"
+    }
+  }
+}

@@ -50,7 +50,7 @@ export default function ChatWidget() {
 
     try {
       const params = new URLSearchParams({ stream: '1' });
-      const target = `${import.meta.env.VITE_API_URL || 'http://localhost:4000/api'}/chat?${params}`;
+      const target = `${import.meta.env.VITE_API_URL || '/api'}/chat?${params}`;
       const res = await fetch(target, {
         method: 'POST',
         credentials: 'include',

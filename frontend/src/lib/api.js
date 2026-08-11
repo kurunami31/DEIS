@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export function extractError(err) {
   if (err instanceof Error) return err.message;
@@ -22,7 +22,12 @@ export async function request({ method = 'get', url = '', data, params }) {
   const body = await res.json().catch(() => null);
 
   if (res.status === 401) {
-    window.location.href = '/login';
+    // Only redirect when we're not already on a public/auth page — otherwise
+    // the redirect reloads the current URL and loops forever.
+    const path = window.location.pathname;
+    if (!['/login', '/verify', '/activate'].some((p) => path.startsWith(p))) {
+      window.location.href = '/login';
+    }
     throw new Error('Your session has expired. Please sign in again.');
   }
 

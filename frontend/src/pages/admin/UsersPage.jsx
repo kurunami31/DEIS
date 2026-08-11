@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
-import { ShieldCheck, UserCog, UserPlus } from 'lucide-react';
+import { ShieldCheck, UserCog, UserPlus, KeyRound } from 'lucide-react';
 import { request } from '../../lib/api.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import { formatDate } from '../../lib/utils.js';
 
 const ROLES = [
-  { value: 'STUDENT', label: 'Student' },
   { value: 'FACULTY', label: 'Faculty' },
   { value: 'REGISTRAR', label: 'Registrar' },
   { value: 'ADMIN', label: 'Administrator' },
@@ -16,8 +15,9 @@ export default function UsersPage() {
   const [users, setUsers] = useState(null);
   const [error, setError] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ fullName: '', email: '', role: 'FACULTY', defaultPassword: '' });
+  const [form, setForm] = useState({ fullName: '', email: '', role: 'FACULTY' });
   const [creating, setCreating] = useState(false);
+  const [created, setCreated] = useState(null);
 
   const load = () => request({ url: '/admin/users' }).then(setUsers).catch((err) => setError(err.message));
 
@@ -25,14 +25,18 @@ export default function UsersPage() {
     load();
   }, []);
 
+  const adminExists = Array.isArray(users) && users.some((u) => u.role === 'ADMIN');
+  const creatableRoles = ROLES.filter((r) => r.value !== 'ADMIN' || !adminExists);
+
   const handleCreate = async (e) => {
     e.preventDefault();
     setCreating(true);
     try {
-      await request({ method: 'post', url: '/admin/users', data: form });
+      const data = await request({ method: 'post', url: '/admin/users', data: form });
+      setCreated({ ...data.user, temporaryPassword: data.temporaryPassword });
       toast.success(`Account created for ${form.fullName}.`);
       setShowCreate(false);
-      setForm({ fullName: '', email: '', role: 'FACULTY', defaultPassword: '' });
+      setForm({ fullName: '', email: '', role: 'FACULTY' });
       load();
     } catch (err) {
       toast.error(err.message);
@@ -110,6 +114,25 @@ export default function UsersPage() {
         </div>
       </section>
 
+      {created && (
+        <div className="rounded-[15px] border border-emerald-200 bg-emerald-50 p-4">
+          <div className="flex items-center gap-2 text-sm font-semibold text-emerald-800">
+            <KeyRound size={16} />
+            Account created - share the one-time password with {created.fullName}
+          </div>
+          <dl className="mt-3 space-y-1.5 text-sm">
+            <div className="flex justify-between"><dt className="text-slate-500">Email</dt><dd className="font-medium text-slate-800">{created.email}</dd></div>
+            <div className="flex justify-between"><dt className="text-slate-500">Role</dt><dd className="font-medium text-slate-800">{created.role}</dd></div>
+            <div className="flex justify-between"><dt className="text-slate-500">One-time password</dt><dd className="font-mono font-bold text-primary-700">{created.temporaryPassword}</dd></div>
+          </dl>
+          <p className="mt-3 text-xs text-emerald-700">
+            The password is generated automatically and shown only once. The user must change it on first
+            login. Save it before closing this notice.
+          </p>
+          <button className="btn-primary mt-3 !px-3 !py-1.5 text-xs" onClick={() => setCreated(null)}>Got it</button>
+        </div>
+      )}
+
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" onClick={() => setShowCreate(false)}>
           <div className="w-full max-w-md rounded-[15px] bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
@@ -124,27 +147,20 @@ export default function UsersPage() {
               <div>
                 <label className="label">Email</label>
                 <input className="input" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+                {form.role === 'FACULTY' && (
+                  <p className="mt-1 text-xs text-slate-400">Faculty uses their school email, e.g. jose.santos@dorsu.edu.ph</p>
+                )}
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="label">Role</label>
-                  <select className="input" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-                    {ROLES.filter((r) => r.value !== 'STUDENT').map((r) => (
-                      <option key={r.value} value={r.value}>{r.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="label">Temp password</label>
-                  <input
-                    className="input"
-                    type="text"
-                    value={form.defaultPassword}
-                    onChange={(e) => setForm({ ...form, defaultPassword: e.target.value })}
-                    placeholder="min 10 chars"
-                    required
-                  />
-                </div>
+              <div>
+                <label className="label">Role</label>
+                <select className="input" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
+                  {creatableRoles.map((r) => (
+                    <option key={r.value} value={r.value}>{r.label}</option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-slate-400">
+                  A secure one-time password is generated automatically and shown after creation.
+                </p>
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" className="btn-secondary !px-3 !py-1.5 text-xs" onClick={() => setShowCreate(false)}>Cancel</button>
