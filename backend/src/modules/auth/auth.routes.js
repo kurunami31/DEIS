@@ -219,7 +219,7 @@ function oauthStateCookieOptions() {
     secure: true,
     sameSite: 'strict',
     path: '/',
-    maxAge: OAUTH_STATE_TTL_MS / 1000,
+    maxAge: OAUTH_STATE_TTL_MS,
   };
 }
 

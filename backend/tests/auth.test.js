@@ -117,6 +117,7 @@ describe('auth / google oauth', () => {
     expect(res.headers.location).toContain('accounts.google.com');
     const setCookie = res.headers['set-cookie'].join(';');
     expect(setCookie).toContain('__Host-deis_oauth_state=');
+    expect(setCookie).toContain('Max-Age=600');
   });
 
   it('signs an existing user in from the callback', async () => {
