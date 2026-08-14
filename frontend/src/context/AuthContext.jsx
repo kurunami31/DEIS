@@ -29,9 +29,28 @@ export function AuthProvider({ children }) {
       throw new Error(msg);
     }
     const payload = data?.data ?? data;
+    // Two-step sign-in: password alone is not enough when 2FA is enabled.
+    if (payload.totpRequired) return payload;
     const me = await request({ url: '/auth/me' });
     setUser(me);
     return payload.user ?? me;
+  }, []);
+
+  const loginTotp = useCallback(async (challengeToken, code) => {
+    const res = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/auth/login/totp`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ challengeToken, code }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const msg = data?.error?.message || (data?.error?.details?.length ? data.error.details[0].message : 'Verification failed');
+      throw new Error(msg);
+    }
+    const me = await request({ url: '/auth/me' });
+    setUser(me);
+    return me;
   }, []);
 
   const logout = useCallback(async () => {
@@ -43,7 +62,10 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
-  const value = useMemo(() => ({ user, setUser, login, logout, loading }), [user, login, logout, loading]);
+  const value = useMemo(
+    () => ({ user, setUser, login, loginTotp, logout, loading }),
+    [user, login, loginTotp, logout, loading],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

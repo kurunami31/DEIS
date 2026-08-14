@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   LogIn, GraduationCap, Eye, EyeOff, UserPlus, ShieldCheck, ClipboardList,
-  BarChart3, BadgeCheck, Mail, LockKeyhole, Sparkles,
+  BarChart3, BadgeCheck, Mail, LockKeyhole, Sparkles, ShieldEllipsis, KeyRound, ArrowLeft,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
 import { Logo } from '../../components/Logo.jsx';
-import { extractError } from '../../lib/api.js';
+import { request, extractError } from '../../lib/api.js';
 
 const FEATURES = [
   { icon: ShieldCheck, label: 'Verify & activate' },
@@ -18,7 +18,7 @@ const FEATURES = [
 ];
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, loginTotp } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -28,13 +28,67 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
+  // Two-factor step
+  const [challenge, setChallenge] = useState(null);
+  const [code, setCode] = useState('');
+  const [codeSubmitting, setCodeSubmitting] = useState(false);
+
+  // Forgot-password (security questions) step
+  const [resetStep, setResetStep] = useState(null); // null | 'identifier' | 'answers'
+  const [resetIdentifier, setResetIdentifier] = useState('');
+  const [resetQuestions, setResetQuestions] = useState([]);
+  const [resetToken, setResetToken] = useState('');
+  const [resetAnswers, setResetAnswers] = useState([]);
+  const [resetNewPassword, setResetNewPassword] = useState('');
+  const [resetBusy, setResetBusy] = useState(false);
+  const [resetDone, setResetDone] = useState(false);
+
+  const startReset = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setResetBusy(true);
+    try {
+      const data = await request({ method: 'post', url: '/auth/forgot-password', data: { identifier: resetIdentifier } });
+      setResetToken(data.resetToken);
+      setResetQuestions(data.questions);
+      setResetAnswers(data.questions.map((q) => ({ questionId: q.questionId, answer: '' })));
+      setResetStep('answers');
+    } catch (err) {
+      setError(extractError(err));
+    } finally {
+      setResetBusy(false);
+    }
+  };
+
+  const finishReset = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setResetBusy(true);
+    try {
+      await request({
+        method: 'post',
+        url: '/auth/reset-password',
+        data: { resetToken, answers: resetAnswers, newPassword: resetNewPassword },
+      });
+      setResetDone(true);
+    } catch (err) {
+      setError(extractError(err));
+    } finally {
+      setResetBusy(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
     try {
-      const user = await login(identifier, password);
-      toast.success(`Welcome back, ${user.fullName.split(' ')[0]}!`);
+      const result = await login(identifier, password);
+      if (result?.totpRequired) {
+        setChallenge(result);
+        return;
+      }
+      toast.success(`Welcome back, ${result.fullName.split(' ')[0]}!`);
       navigate('/dashboard');
     } catch (err) {
       setError(extractError(err));
@@ -43,11 +97,32 @@ export default function LoginPage() {
     }
   };
 
+  const handleCodeSubmit = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setCodeSubmitting(true);
+    try {
+      const user = await loginTotp(challenge.challengeToken, code.trim());
+      toast.success(`Welcome back, ${user.fullName.split(' ')[0]}!`);
+      setChallenge(null);
+      navigate('/dashboard');
+    } catch (err) {
+      setError(extractError(err));
+    } finally {
+      setCodeSubmitting(false);
+    }
+  };
+
   return (
     <div className="grid min-h-screen bg-slate-50 lg:grid-cols-[1.1fr_1fr]">
       {/* Brand panel */}
       <div className="relative hidden overflow-hidden bg-primary-900 lg:flex lg:flex-col lg:justify-between lg:p-14">
-        <div className="absolute inset-0 bg-gradient-to-br from-accent-start/25 via-primary-800 to-primary-950" />
+        <img
+          src="/graduation-background.png"
+          alt=""
+          className="absolute inset-0 size-full object-cover opacity-40"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-accent-start/40 via-primary-900/80 to-primary-950" />
         <div className="absolute -left-32 -top-32 size-[26rem] rounded-full bg-accent-end/20 blur-3xl" />
         <div className="absolute -bottom-40 -right-24 size-[30rem] rounded-full bg-white/5 blur-3xl" />
         <div
@@ -94,7 +169,19 @@ export default function LoginPage() {
               </span>
             ))}
           </div>
-          <p className="text-xs text-primary-200">Main Campus · Mati City, Davao Oriental · est. 1981</p>
+          <p className="text-xs text-primary-200">
+            Main Campus · Mati City, Davao Oriental · est. 1989 ·{' '}
+            <Link to="/promo" className="underline underline-offset-2 hover:text-white">Watch the promo</Link>
+            {' '}·{' '}
+            <a
+              href="https://www.facebook.com/dorsuofficial"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 hover:text-white"
+            >
+              Official Facebook
+            </a>
+          </p>
         </div>
       </div>
 
@@ -120,53 +207,210 @@ export default function LoginPage() {
                 <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="label" htmlFor="identifier">Email or Student Number</label>
-                  <div className="relative">
-                    <Mail size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input
-                      id="identifier"
-                      className="input !pl-9"
-                      placeholder="e.g. registrar@dorsu.edu.ph"
-                      value={identifier}
-                      onChange={(e) => setIdentifier(e.target.value)}
-                      autoComplete="username"
-                      required
-                    />
+              {resetDone ? (
+                <div className="space-y-4 text-center">
+                  <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-50">
+                    <BadgeCheck size={24} className="text-emerald-600" />
                   </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">Password reset successfully</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      You can now sign in with your new password.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setResetDone(false);
+                      setResetStep(null);
+                      setPassword('');
+                    }}
+                    className="btn-primary w-full justify-center"
+                  >
+                    Back to sign in
+                  </button>
                 </div>
-
-                <div>
-                  <label className="label" htmlFor="password">Password</label>
-                  <div className="relative">
-                    <LockKeyhole size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              ) : resetStep === 'answers' ? (
+                <form onSubmit={finishReset} className="space-y-4">
+                  <button
+                    type="button"
+                    onClick={() => setResetStep('identifier')}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-primary-700"
+                  >
+                    <ArrowLeft size={13} /> Back
+                  </button>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">Answer security questions</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Answer the questions you set up to verify your identity.
+                    </p>
+                  </div>
+                  {resetQuestions.map((q, i) => (
+                    <div key={q.questionId}>
+                      <label className="label" htmlFor={`sq-${q.questionId}`}>{q.questionLabel}</label>
+                      <input
+                        id={`sq-${q.questionId}`}
+                        className="input"
+                        value={resetAnswers[i]?.answer ?? ''}
+                        onChange={(e) => {
+                          const next = [...resetAnswers];
+                          next[i] = { ...next[i], answer: e.target.value };
+                          setResetAnswers(next);
+                        }}
+                        required
+                      />
+                    </div>
+                  ))}
+                  <div>
+                    <label className="label" htmlFor="resetNewPassword">New password</label>
                     <input
-                      id="password"
+                      id="resetNewPassword"
                       type={showPassword ? 'text' : 'password'}
-                      className="input !pl-9 !pr-10"
-                      placeholder="••••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      autoComplete="current-password"
+                      className="input"
+                      placeholder="At least 12 characters"
+                      value={resetNewPassword}
+                      onChange={(e) => setResetNewPassword(e.target.value)}
                       required
                     />
-                    <button
-                      type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                      onClick={() => setShowPassword((v) => !v)}
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
                   </div>
-                </div>
+                  <button type="submit" disabled={resetBusy} className="btn-primary w-full justify-center">
+                    <ShieldCheck size={15} />
+                    {resetBusy ? 'Resetting…' : 'Reset password'}
+                  </button>
+                </form>
+              ) : resetStep === 'identifier' ? (
+                <form onSubmit={startReset} className="space-y-4">
+                  <button
+                    type="button"
+                    onClick={() => setResetStep(null)}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-primary-700"
+                  >
+                    <ArrowLeft size={13} /> Back to sign in
+                  </button>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">Reset your password</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Enter your email or student number. You&apos;ll verify your identity with
+                      security questions set up on your account.
+                    </p>
+                  </div>
+                  <div>
+                    <label className="label" htmlFor="resetIdentifier">Email or Student Number</label>
+                    <input
+                      id="resetIdentifier"
+                      className="input"
+                      placeholder="e.g. registrar@dorsu.edu.ph"
+                      value={resetIdentifier}
+                      onChange={(e) => setResetIdentifier(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <button type="submit" disabled={resetBusy} className="btn-primary w-full justify-center">
+                    <KeyRound size={15} />
+                    {resetBusy ? 'Checking…' : 'Continue'}
+                  </button>
+                </form>
+              ) : challenge ? (
+                <form onSubmit={handleCodeSubmit} className="space-y-4">
+                  <div className="flex items-center gap-3 rounded-xl border border-primary-200 bg-primary-50 px-4 py-3">
+                    <ShieldEllipsis size={20} className="shrink-0 text-primary-700" />
+                    <div>
+                      <p className="text-sm font-semibold text-primary-800">Two-factor verification</p>
+                      <p className="text-xs text-primary-700/80">
+                        Password verified. Enter the 6-digit code from your authenticator app.
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="label" htmlFor="totpCode">Authenticator code</label>
+                    <input
+                      id="totpCode"
+                      className="input text-center font-mono !text-lg tracking-[0.5em]"
+                      placeholder="• • • • • •"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      autoFocus
+                      required
+                    />
+                  </div>
+                  <button type="submit" disabled={codeSubmitting || code.length !== 6} className="btn-primary w-full justify-center !py-2.5">
+                    <ShieldCheck size={16} />
+                    {codeSubmitting ? 'Verifying…' : 'Verify & sign in'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setChallenge(null);
+                      setCode('');
+                    }}
+                    className="w-full text-center text-sm text-slate-500 hover:text-slate-700"
+                  >
+                    Back to sign in
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <label className="label" htmlFor="identifier">Email or Student Number</label>
+                    <div className="relative">
+                      <Mail size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        id="identifier"
+                        className="input !pl-9"
+                        placeholder="e.g. registrar@dorsu.edu.ph"
+                        value={identifier}
+                        onChange={(e) => setIdentifier(e.target.value)}
+                        autoComplete="username"
+                        required
+                      />
+                    </div>
+                  </div>
 
-                <button type="submit" disabled={submitting} className="btn-primary w-full justify-center !py-2.5">
-                  <LogIn size={16} />
-                  {submitting ? 'Signing in…' : 'Sign in'}
-                </button>
-              </form>
+                  <div>
+                    <label className="label" htmlFor="password">Password</label>
+                    <div className="relative">
+                      <LockKeyhole size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        className="input !pl-9 !pr-10"
+                        placeholder="••••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        autoComplete="current-password"
+                        required
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        onClick={() => setShowPassword((v) => !v)}
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button type="submit" disabled={submitting} className="btn-primary w-full justify-center !py-2.5">
+                    <LogIn size={16} />
+                    {submitting ? 'Signing in…' : 'Sign in'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError(null);
+                      setResetStep('identifier');
+                    }}
+                    className="flex w-full items-center justify-center gap-1.5 text-sm text-slate-500 transition hover:text-primary-700"
+                  >
+                    <KeyRound size={14} />
+                    Forgot password?
+                  </button>
+                </form>
+              )}
             </div>
           </div>
 

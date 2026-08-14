@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, ClipboardList, FileText, GraduationCap, BookOpen, Inbox,
-  Users, LayoutGrid, BarChart3, UserCog, CalendarDays, Database, Activity,
+  Users, LayoutGrid, BarChart3, UserCog, CalendarDays, Database, Activity, FlaskConical,
   UserCircle, LogOut, Menu, X, Home, BadgeCheck, ChevronDown, UserRound, KeyRound,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -56,6 +56,7 @@ const NAV_GROUPS = [
       { to: '/users', label: 'User Accounts', icon: UserCog },
       { to: '/terms', label: 'Academic Terms', icon: CalendarDays },
       { to: '/catalog', label: 'Catalog', icon: Database },
+      { to: '/policy', label: 'Enrollment Rules', icon: FlaskConical },
     ],
   },
   {
@@ -73,6 +74,10 @@ export default function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
+
+  useEffect(() => {
+    document.title = `${pageTitle(location.pathname)} · DOrSU DEIS`;
+  }, [location.pathname]);
 
   // Warm the pages the user is most likely to open next, so the first click
   // into any service renders instantly (server + client caches are primed).
@@ -367,6 +372,7 @@ const TITLES = {
   '/users': 'User Accounts',
   '/terms': 'Academic Terms',
   '/catalog': 'Academic Catalog',
+  '/policy': 'Enrollment Rules',
   '/audit': 'Activity Log',
 };
 

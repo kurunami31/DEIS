@@ -54,6 +54,13 @@ model User {
   mustChangePassword Boolean  @default(false)
   isActive           Boolean  @default(true)
   tokenVersion       Int      @default(0)
+  dpaConsentAt       DateTime?
+  dpaConsentVersion  Int      @default(0)
+  totpSecret         String?
+  totpEnabledAt      DateTime?
+  totpRecoveryCodes  String?
+  passwordQuestions  String?
+  resetNonce         String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
@@ -269,6 +276,9 @@ model EnrollmentRequest {
   submittedAt  DateTime         @default(now())
   reviewedAt   DateTime?
   studentNote  String?
+  paymentRef   String?
+  paymentAmount Decimal?        @db.Decimal(9, 2)
+  paymentPaidAt DateTime?
 
   student    StudentProfile @relation(fields: [studentId], references: [id])
   term       Term           @relation(fields: [termId], references: [id])
@@ -364,6 +374,15 @@ model UniversityActivity {
   createdBy User @relation(fields: [createdById], references: [id])
 
   @@index([startsAt])
+}
+
+// ---------------------------------------------------------------------------
+// Enrollment policy (evaluator-configurable rules)
+// ---------------------------------------------------------------------------
+
+model EnrollmentPolicy {
+  key   String @id
+  value String
 }
 
 // ---------------------------------------------------------------------------

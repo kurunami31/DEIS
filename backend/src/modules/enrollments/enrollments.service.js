@@ -1,8 +1,7 @@
 import { prisma } from '../../lib/prisma.js';
 import { ConflictError, NotFoundError, UnprocessableError } from '../../lib/http.js';
+import { PASSING_GRADE, evaluateEnrollmentRules, loadPolicy, boolOf } from './enrollments.rules.js';
 
-export const PASSING_GRADE = 3.0;
-export const MAX_UNITS_PER_TERM = 24;
 const STATUS_HOLDING_SEATS = ['PENDING', 'APPROVED'];
 
 function countHeldSeats(sectionId) {
@@ -77,14 +76,6 @@ export async function validateEnrollment(studentId, termId, sectionIds) {
     }
   }
 
-  if (totalUnits > MAX_UNITS_PER_TERM) {
-    issues.push({
-      sectionId: null,
-      code: 'UNITS_EXCEEDED',
-      message: `Load of ${totalUnits} units exceeds the ${MAX_UNITS_PER_TERM}-unit maximum`,
-    });
-  }
-
   for (const section of sections) {
     for (const other of sections) {
       if (other.id === section.id || other.schedule !== section.schedule) continue;
@@ -96,5 +87,44 @@ export async function validateEnrollment(studentId, termId, sectionIds) {
     }
   }
 
+  // W2/W3 evaluator rules: year level, backlog retakes, GWA-based load cap.
+  const student = await prisma.studentProfile.findUnique({ where: { id: studentId } });
+  const offeredThisTerm = await prisma.section.findMany({
+    where: { termId },
+    select: { subjectId: true },
+  });
+  const ruleIssues = await evaluateEnrollmentRules({
+    student,
+    totalUnits,
+    sections,
+    offeredSubjectIds: new Set(offeredThisTerm.map((s) => s.subjectId)),
+  });
+  issues.push(...ruleIssues);
+
   return issues;
 }
+
+/** Records the online-payment stub for a submitted enrollment request. */
+export async function recordPayment(requestId, studentId, { amount, reference }) {
+  const request = await prisma.enrollmentRequest.findUnique({ where: { id: requestId } });
+  if (!request || request.studentId !== studentId) {
+    throw new NotFoundError('Enrollment request not found.');
+  }
+  if (request.status !== 'PENDING') {
+    throw new ConflictError('Only pending requests can be paid.');
+  }
+  if (request.paymentPaidAt) {
+    throw new ConflictError('This request has already been paid.');
+  }
+
+  return prisma.enrollmentRequest.update({
+    where: { id: requestId },
+    data: {
+      paymentRef: reference ?? `PAY-${Date.now()}`,
+      paymentAmount: amount ?? null,
+      paymentPaidAt: new Date(),
+    },
+  });
+}
+
+export { loadPolicy, boolOf, PASSING_GRADE };

@@ -1,8 +1,9 @@
 export class HttpError extends Error {
-  constructor(status, message, details) {
+  constructor(status, message, details, code) {
     super(message);
     this.status = status;
     this.details = details;
+    if (code) this.code = code;
   }
 }
 
@@ -19,8 +20,8 @@ export class UnauthorizedError extends HttpError {
 }
 
 export class ForbiddenError extends HttpError {
-  constructor(message = 'You do not have permission to perform this action') {
-    super(403, message);
+  constructor(message = 'You do not have permission to perform this action', code) {
+    super(403, message, undefined, code);
   }
 }
 

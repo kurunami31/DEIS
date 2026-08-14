@@ -7,6 +7,7 @@ import { authenticate, allowRoles } from '../../middleware/auth.js';
 import { audit } from '../../lib/audit.js';
 import { hashPassword, generateRandomPassword } from '../../lib/passwords.js';
 import { ConflictError, NotFoundError, UnprocessableError } from '../../lib/http.js';
+import { loadPolicy, invalidatePolicyCache, POLICY_DEFAULTS } from '../enrollments/enrollments.rules.js';
 
 const router = Router();
 
@@ -119,6 +120,47 @@ router.get(
       take: 200,
     });
     return ok(res, logs);
+  }),
+);
+
+// Enrollment evaluator configuration (W3): ADMIN tunes the rules the evaluator
+// enforces. Every key maps to a POLICY_DEFAULTS entry; unknowns are rejected.
+router.get(
+  '/enrollment-policy',
+  authenticate,
+  allowRoles('ADMIN'),
+  asyncHandler(async (req, res) => {
+    const policy = await loadPolicy();
+    return ok(res, { policy, defaults: POLICY_DEFAULTS });
+  }),
+);
+
+router.put(
+  '/enrollment-policy',
+  authenticate,
+  allowRoles('ADMIN'),
+  validate(z.array(z.object({ key: z.string().min(1).max(64), value: z.string().min(1).max(128) })).max(20)),
+  asyncHandler(async (req, res) => {
+    const allowed = new Set(Object.keys(POLICY_DEFAULTS));
+    const entries = req.body.filter((e) => allowed.has(e.key));
+    await prisma.$transaction(
+      entries.map((e) =>
+        prisma.enrollmentPolicy.upsert({
+          where: { key: e.key },
+          create: { key: e.key, value: e.value },
+          update: { value: e.value },
+        }),
+      ),
+    );
+    invalidatePolicyCache();
+    await audit({
+      actorId: req.user.id,
+      action: 'ENROLLMENT_POLICY_UPDATED',
+      entityType: 'system',
+      entityId: 'enrollment-policy',
+      meta: { keys: entries.map((e) => e.key) },
+    });
+    return ok(res, { policy: await loadPolicy() });
   }),
 );
 

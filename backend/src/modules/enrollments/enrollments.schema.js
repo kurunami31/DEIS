@@ -9,3 +9,13 @@ export const reviewSchema = z.object({
   action: z.enum(['approve', 'reject']),
   reviewNotes: z.string().max(500).optional(),
 });
+
+export const paymentSchema = z.object({
+  amount: z.number().positive('Amount must be positive').optional(),
+  reference: z.string().trim().max(64).optional(),
+});
+
+export const policySchema = z.object({
+  key: z.string().trim().min(1).max(64),
+  value: z.string().trim().min(1).max(128),
+});

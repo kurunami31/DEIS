@@ -32,3 +32,10 @@ Thumbs.db
 
 # Uploads
 uploads/
+
+# Local media assets too large for the repo (host externally)
+*.mov
+*.mp4
+*.pdf
+*.png
+!frontend/public/graduation-background.png

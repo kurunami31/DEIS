@@ -9,6 +9,7 @@ import { ForbiddenError } from './lib/http.js';
 import { readCache, writeCache, bustCache } from './lib/cache.js';
 import { verifyToken } from './lib/tokens.js';
 import { routes } from './routes/index.js';
+import { SESSION_COOKIE } from './lib/session.js';
 
 export function createApp() {
   const app = express();
@@ -58,7 +59,7 @@ export function createApp() {
       // Cache key is scoped to the authenticated user so one user's cached
       // response can never leak to another. JWT verify is cheap (no DB call).
       let identity = 'anon';
-      const token = req.cookies?.deis_session ?? (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7).trim() : null);
+      const token = req.cookies?.[SESSION_COOKIE] ?? (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7).trim() : null);
       if (token) {
         try {
           identity = verifyToken(token).sub;

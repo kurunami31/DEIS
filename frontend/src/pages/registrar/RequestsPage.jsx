@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Check, Inbox, X } from 'lucide-react';
+import { Banknote, Check, Inbox, X } from 'lucide-react';
 import { request } from '../../lib/api.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import { formatDateTime, initials } from '../../lib/utils.js';
+
+const formatMoney = (n) => `₱${Number(n ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const FILTERS = [
   { value: 'PENDING', label: 'Pending', cls: 'badge-amber' },
@@ -106,11 +108,26 @@ export default function RequestsPage() {
                 </span>
               </div>
 
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                 <span className="badge badge-blue">{req.items.length} subjects</span>
                 <span className="badge badge-blue">{units} units</span>
                 <span className="ml-auto">submitted {formatDateTime(req.submittedAt)}</span>
               </div>
+
+              {req.status === 'PENDING' &&
+                (req.paymentPaidAt ? (
+                  <p className="mt-2 flex flex-wrap items-center gap-2 rounded-[15px] border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs text-emerald-700">
+                    <Banknote size={14} className="shrink-0" />
+                    <span className="font-semibold">Paid {formatMoney(req.paymentAmount)}</span>
+                    {req.paymentRef && <span className="text-slate-500">· ref {req.paymentRef}</span>}
+                    <span className="text-slate-500">· {formatDateTime(req.paymentPaidAt)}</span>
+                  </p>
+                ) : (
+                  <p className="mt-2 flex items-center gap-2 rounded-[15px] border border-amber-200 bg-amber-50 px-3.5 py-2 text-xs text-amber-800">
+                    <Banknote size={14} className="shrink-0" />
+                    Payment has not been recorded yet — approval will be blocked until the student records a payment stub.
+                  </p>
+                ))}
 
               {req.reviewNotes && (
                 <p className="mt-2 rounded-[15px] border border-amber-200 bg-amber-50 px-3.5 py-2 text-xs text-amber-800">
@@ -118,7 +135,7 @@ export default function RequestsPage() {
                 </p>
               )}
 
-              <div className="mt-3 overflow-hidden rounded-[15px] border border-slate-100">
+              <div className="mt-3 overflow-x-auto rounded-[15px] border border-slate-100">
                 <table className="table-base">
                   <thead>
                     <tr><th>Subject</th><th>Section</th><th>Schedule</th><th>Units</th></tr>
@@ -166,9 +183,28 @@ export default function RequestsPage() {
 }
 
 function ReviewModal({ req, note, setNote, busy, onClose, onDecide }) {
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape' && !busy) onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = previous;
+    };
+  }, [busy, onClose]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-[15px] bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" onClick={() => !busy && onClose()}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Review enrollment request"
+        className="w-full max-w-md rounded-[15px] bg-white p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3 className="text-base font-semibold text-slate-800">
           {req.student.firstName} {req.student.lastName} — {req.term.label}
         </h3>

@@ -60,6 +60,30 @@ body {
 .btn-danger:hover:not(:disabled) { background: #b91c1c; }
 .btn-primary:disabled, .btn-secondary:disabled, .btn-danger:disabled { opacity: 0.55; cursor: not-allowed; }
 
+/* Keyboard focus visibility: inputs keep their soft ring; interactive
+   elements get a consistent outline for keyboard users. */
+:focus-visible {
+  outline: 2px solid var(--primary-600);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(20, 67, 123, 0.12), 0 0 0 1px var(--primary-600);
+}
+.btn-primary:focus-visible, .btn-secondary:focus-visible, .btn-danger:focus-visible {
+  outline: 2px solid var(--primary-600);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* ---------- Forms ---------- */
 .label {
   display: block;

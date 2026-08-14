@@ -528,6 +528,38 @@ function SecurityTab({ user, setUser }) {
   const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [changing, setChanging] = useState(false);
 
+  // Two-factor (TOTP) state
+  const [totpMode, setTotpMode] = useState(null); // 'enroll' | 'disable'
+  const [enrollment, setEnrollment] = useState(null); // { secret, otpauthUrl }
+  const [totpForm, setTotpForm] = useState({ secret: '', code: '' });
+  const [totpBusy, setTotpBusy] = useState(false);
+  const [recoveryCodes, setRecoveryCodes] = useState(null);
+
+  // Security questions state
+  const SECURITY_QUESTIONS = [
+    { id: 'mother_maiden', label: "What is your mother's maiden name?" },
+    { id: 'birth_city', label: 'In what city were you born?' },
+    { id: 'first_school', label: 'What is the name of your first school?' },
+    { id: 'pet_name', label: 'What was the name of your first pet?' },
+    { id: 'favorite_teacher', label: 'What was the name of your favorite teacher in grade school?' },
+  ];
+  const [questionsMode, setQuestionsMode] = useState(false);
+  const [questionsBusy, setQuestionsBusy] = useState(false);
+  const [questionRows, setQuestionRows] = useState([
+    { questionId: '', answer: '' },
+    { questionId: '', answer: '' },
+    { questionId: '', answer: '' },
+  ]);
+  const [hasQuestions, setHasQuestions] = useState(false);
+
+  useEffect(() => {
+    request({ url: '/auth/security-questions' })
+      .then((data) => setHasQuestions(data.questions.length > 0))
+      .catch(() => {});
+  }, []);
+
+  const refreshUser = async () => setUser(await request({ url: '/auth/me' }));
+
   const handlePassword = async (e) => {
     e.preventDefault();
     if (form.newPassword !== form.confirmPassword) {
@@ -547,12 +579,87 @@ function SecurityTab({ user, setUser }) {
       await request({ method: 'post', url: '/auth/change-password', data: { currentPassword: form.currentPassword, newPassword: form.newPassword } });
       toast.success('Password updated. Other sessions have been signed out.');
       setForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      const me = await request({ url: '/auth/me' });
-      setUser(me);
+      await refreshUser();
     } catch (err) {
       toast.error(err.message);
     } finally {
       setChanging(false);
+    }
+  };
+
+  const startEnroll = async () => {
+    setTotpBusy(true);
+    try {
+      const data = await request({ method: 'post', url: '/auth/totp/enroll' });
+      setEnrollment(data);
+      setTotpMode('enroll');
+      setTotpForm({ ...totpForm, secret: data.secret });
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setTotpBusy(false);
+    }
+  };
+
+  const confirmEnroll = async (e) => {
+    e.preventDefault();
+    setTotpBusy(true);
+    try {
+      const data = await request({ method: 'post', url: '/auth/totp/confirm', data: { code: totpForm.code.trim() } });
+      setRecoveryCodes(data.recoveryCodes);
+      setTotpMode(null);
+      setEnrollment(null);
+      setTotpForm({ secret: '', code: '' });
+      await refreshUser();
+      toast.success('Two-factor authentication is now enabled.');
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setTotpBusy(false);
+    }
+  };
+
+  const disableTotp = async (e) => {
+    e.preventDefault();
+    setTotpBusy(true);
+    try {
+      await request({ method: 'post', url: '/auth/totp/disable', data: { code: totpForm.code.trim() } });
+      setTotpMode(null);
+      setTotpForm({ secret: '', code: '' });
+      await refreshUser();
+      toast.success('Two-factor authentication is now disabled.');
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setTotpBusy(false);
+    }
+  };
+
+  const doneRecovery = async () => {
+    setRecoveryCodes(null);
+    await refreshUser();
+  };
+
+  const saveQuestions = async (e) => {
+    e.preventDefault();
+    if (questionRows.filter((r) => r.questionId && r.answer.trim()).length < 3) {
+      toast.error('Please answer at least 3 unique questions.');
+      return;
+    }
+    setQuestionsBusy(true);
+    try {
+      await request({
+        method: 'put',
+        url: '/auth/security-questions',
+        data: { answers: questionRows.filter((r) => r.questionId && r.answer.trim()) },
+      });
+      setHasQuestions(true);
+      setQuestionsMode(false);
+      toast.success('Security questions updated.');
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setQuestionsBusy(false);
     }
   };
 
@@ -571,32 +678,197 @@ function SecurityTab({ user, setUser }) {
   }
 
   return (
-    <section className="card card-pad max-w-xl">
-      <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-600">
-        <KeyRound size={15} className="text-primary-600" /> Change password
-      </h3>
-      <p className="mt-1 text-xs text-slate-400">
-        Your password must be at least 12 characters with upper and lowercase letters, a number, and a special character.
-      </p>
-      <form onSubmit={handlePassword} className="mt-4 space-y-4">
-        <div>
-          <label className="label">Current password</label>
-          <input className="input" type="password" value={form.currentPassword} onChange={(e) => setForm({ ...form, currentPassword: e.target.value })} required />
+    <>
+      <section className="card card-pad max-w-xl">
+        <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-600">
+          <KeyRound size={15} className="text-primary-600" /> Change password
+        </h3>
+        <p className="mt-1 text-xs text-slate-400">
+          Your password must be at least 12 characters with upper and lowercase letters, a number, and a special character.
+        </p>
+        <form onSubmit={handlePassword} className="mt-4 space-y-4">
+          <div>
+            <label className="label">Current password</label>
+            <input className="input" type="password" value={form.currentPassword} onChange={(e) => setForm({ ...form, currentPassword: e.target.value })} required />
+          </div>
+          <div>
+            <label className="label">New password</label>
+            <input className="input" type="password" value={form.newPassword} onChange={(e) => setForm({ ...form, newPassword: e.target.value })} required />
+          </div>
+          <div>
+            <label className="label">Confirm new password</label>
+            <input className="input" type="password" value={form.confirmPassword} onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} required />
+          </div>
+          <button className="btn-primary" disabled={changing}>
+            <ShieldCheck size={15} />
+            {changing ? 'Updating…' : 'Update password'}
+          </button>
+        </form>
+      </section>
+
+      <section className="card card-pad mt-6 max-w-xl">
+        <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-600">
+          <ShieldCheck size={15} className="text-primary-600" /> Two-factor authentication
+        </h3>
+        <p className="mt-1 text-xs text-slate-400">
+          Add a second verification step to your sign-in using an authenticator app.
+        </p>
+
+        {user.totpEnabled ? (
+          <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-800">
+            <p className="font-medium">Enabled</p>
+            <p className="mt-0.5 text-xs text-emerald-700">
+              Your account requires a 6-digit code after the password at sign-in.
+              Recovery codes are stored securely and each can be used once.
+            </p>
+            {totpMode !== 'disable' && (
+              <button className="btn-secondary mt-3" onClick={() => { setTotpMode('disable'); setTotpForm({ ...totpForm, code: '' }); }}>
+                Disable 2FA
+              </button>
+            )}
+            {totpMode === 'disable' && (
+              <form onSubmit={disableTotp} className="mt-3 flex items-end gap-2">
+                <div className="flex-1">
+                  <label className="label">Authenticator or recovery code</label>
+                  <input className="input font-mono" value={totpForm.code} onChange={(e) => setTotpForm({ ...totpForm, code: e.target.value })} required />
+                </div>
+                <button className="btn-primary" disabled={totpBusy}>{totpBusy ? 'Working…' : 'Confirm'}</button>
+                <button type="button" className="btn-secondary" onClick={() => setTotpMode(null)}>Cancel</button>
+              </form>
+            )}
+          </div>
+        ) : (
+          <div className="mt-4">
+            {totpMode !== 'enroll' && (
+              <button className="btn-primary" onClick={startEnroll} disabled={totpBusy}>
+                <ShieldCheck size={15} />
+                {totpBusy ? 'Preparing…' : 'Enable 2FA'}
+              </button>
+            )}
+
+            {totpMode === 'enroll' && enrollment && (
+              <div className="mt-4 space-y-3">
+                <div className="rounded-lg border border-primary-100 bg-primary-50 px-3 py-3">
+                  <p className="text-xs font-semibold text-primary-800">Scan or enter this secret in your authenticator app</p>
+                  <p className="mt-2 break-all font-mono text-sm text-slate-700">{enrollment.otpauthUrl}</p>
+                  <p className="mt-2 break-all font-mono text-xs text-slate-500">Manual key: {enrollment.secret}</p>
+                </div>
+                <form onSubmit={confirmEnroll} className="flex items-end gap-2">
+                  <div className="flex-1">
+                    <label className="label">6-digit code from the app</label>
+                    <input
+                      className="input font-mono tracking-[0.4em]"
+                      value={totpForm.code}
+                      onChange={(e) => setTotpForm({ ...totpForm, code: e.target.value.replace(/\D/g, '').slice(0, 6) })}
+                      inputMode="numeric"
+                      placeholder="••••••"
+                      required
+                    />
+                  </div>
+                  <button className="btn-primary" disabled={totpBusy || totpForm.code.length !== 6}>
+                    {totpBusy ? 'Verifying…' : 'Verify & enable'}
+                  </button>
+                  <button type="button" className="btn-secondary" onClick={() => { setTotpMode(null); setEnrollment(null); }}>
+                    Cancel
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
+      {recoveryCodes && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={doneRecovery}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Recovery codes"
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h4 className="text-base font-bold text-slate-900">Save your recovery codes</h4>
+            <p className="mt-1 text-xs text-slate-500">
+              Store these one-time codes somewhere safe. Each can be used once to sign in when you
+              don&apos;t have your authenticator app.
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              {recoveryCodes.map((c) => (
+                <code key={c} className="rounded-lg bg-slate-50 px-3 py-2 text-center text-sm font-mono text-slate-700">{c}</code>
+              ))}
+            </div>
+            <button className="btn-primary mt-5 w-full justify-center" onClick={doneRecovery} autoFocus>
+              I&apos;ve saved my codes
+            </button>
+          </div>
         </div>
-        <div>
-          <label className="label">New password</label>
-          <input className="input" type="password" value={form.newPassword} onChange={(e) => setForm({ ...form, newPassword: e.target.value })} required />
-        </div>
-        <div>
-          <label className="label">Confirm new password</label>
-          <input className="input" type="password" value={form.confirmPassword} onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} required />
-        </div>
-        <button className="btn-primary" disabled={changing}>
-          <ShieldCheck size={15} />
-          {changing ? 'Updating…' : 'Update password'}
-        </button>
-      </form>
-    </section>
+      )}
+
+      <section className="card card-pad mt-6 max-w-xl">
+        <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-600">
+          <UserRound size={15} className="text-primary-600" /> Security questions
+        </h3>
+        <p className="mt-1 text-xs text-slate-400">
+          Used to recover your password if you ever forget it. Answers are stored encrypted and can
+          only be used for account recovery.
+        </p>
+        {hasQuestions && !questionsMode && (
+          <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+            Set up ({questionRows.filter((r) => r.questionId).length}/3 answered)
+          </p>
+        )}
+        {!questionsMode && (
+          <button className="btn-secondary mt-3" onClick={() => setQuestionsMode(true)}>
+            {hasQuestions ? 'Update security questions' : 'Set up security questions'}
+          </button>
+        )}
+        {questionsMode && (
+          <form onSubmit={saveQuestions} className="mt-4 space-y-3">
+            {questionRows.map((row, i) => (
+              <div key={i} className="flex gap-2">
+                <select
+                  className="input flex-1"
+                  value={row.questionId}
+                  onChange={(e) => {
+                    const next = [...questionRows];
+                    next[i] = { ...next[i], questionId: e.target.value };
+                    setQuestionRows(next);
+                  }}
+                >
+                  <option value="">Select a question</option>
+                  {SECURITY_QUESTIONS.map((q) => (
+                    <option key={q.id} value={q.id} disabled={questionRows.some((r, j) => j !== i && r.questionId === q.id)}>
+                      {q.label}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  className="input flex-1"
+                  placeholder="Your answer"
+                  value={row.answer}
+                  onChange={(e) => {
+                    const next = [...questionRows];
+                    next[i] = { ...next[i], answer: e.target.value };
+                    setQuestionRows(next);
+                  }}
+                />
+              </div>
+            ))}
+            <div className="flex items-center gap-2">
+              <button className="btn-primary" disabled={questionsBusy}>
+                {questionsBusy ? 'Saving…' : 'Save questions'}
+              </button>
+              <button type="button" className="btn-secondary" onClick={() => setQuestionsMode(false)}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+      </section>
+    </>
   );
 }
 

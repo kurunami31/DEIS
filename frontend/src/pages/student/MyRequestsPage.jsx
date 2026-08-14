@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { FileText, Undo2 } from 'lucide-react';
+import { Banknote, FileText, Undo2 } from 'lucide-react';
 import { request } from '../../lib/api.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import { formatDateTime } from '../../lib/utils.js';
+
+const formatMoney = (n) => `₱${Number(n ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const STATUS_META = {
   PENDING: { label: 'Pending', cls: 'badge-amber' },
@@ -16,6 +18,7 @@ export default function MyRequestsPage() {
   const [requests, setRequests] = useState(null);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(null);
+  const [paying, setPaying] = useState(null);
 
   const load = () => request({ url: '/enrollments/my' }).then(setRequests).catch((err) => setError(err.message));
 
@@ -27,6 +30,18 @@ export default function MyRequestsPage() {
     try {
       await request({ method: 'post', url: `/enrollments/${id}/withdraw` });
       toast.success('Request withdrawn.');
+      load();
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
+  const handlePayment = async (id) => {
+    const payload = { amount: Number(paying.amount) || undefined, reference: paying.reference?.trim() || undefined };
+    try {
+      const updated = await request({ method: 'post', url: `/enrollments/${id}/payment`, data: payload });
+      setPaying(null);
+      toast.success(`Payment recorded (${formatMoney(updated.paymentAmount)}).`);
       load();
     } catch (err) {
       toast.error(err.message);
@@ -84,6 +99,58 @@ export default function MyRequestsPage() {
               </p>
             )}
 
+            {req.status === 'PENDING' && (
+              <div className="mt-3 rounded-[15px] border border-slate-100 bg-slate-50/60 p-3">
+                {req.paymentPaidAt ? (
+                  <p className="flex flex-wrap items-center gap-2 text-xs text-emerald-700">
+                    <Banknote size={14} className="shrink-0" />
+                    <span className="font-semibold">Paid {formatMoney(req.paymentAmount)}</span>
+                    {req.paymentRef && <span className="text-slate-500">· ref {req.paymentRef}</span>}
+                    <span className="text-slate-500">· {formatDateTime(req.paymentPaidAt)}</span>
+                  </p>
+                ) : paying?.id === req.id ? (
+                  <div className="flex flex-wrap items-end gap-2">
+                    <label className="min-w-36 flex-1 text-xs">
+                      <span className="mb-1 block font-semibold text-slate-600">Amount paid</span>
+                      <input
+                        className="input"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="e.g. 2500.00"
+                        value={paying.amount}
+                        onChange={(e) => setPaying({ ...paying, amount: e.target.value })}
+                      />
+                    </label>
+                    <label className="min-w-44 flex-1 text-xs">
+                      <span className="mb-1 block font-semibold text-slate-600">Payment reference</span>
+                      <input
+                        className="input"
+                        maxLength={64}
+                        placeholder="e.g. GPAY-0001"
+                        value={paying.reference}
+                        onChange={(e) => setPaying({ ...paying, reference: e.target.value })}
+                      />
+                    </label>
+                    <div className="flex gap-2">
+                      <button className="btn-secondary !px-3 !py-2 text-xs" onClick={() => setPaying(null)}>Cancel</button>
+                      <button
+                        className="btn-primary !px-3 !py-2 text-xs"
+                        disabled={!paying.amount && !paying.reference}
+                        onClick={() => handlePayment(req.id)}
+                      >
+                        <Banknote size={13} /> Save payment
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button className="btn-primary !px-3 !py-1.5 text-xs" onClick={() => setPaying({ id: req.id, amount: '', reference: '' })}>
+                    <Banknote size={13} /> Record payment stub
+                  </button>
+                )}
+              </div>
+            )}
+
             <button
               className="mt-3 text-xs font-semibold text-primary-600 hover:underline"
               onClick={() => setExpanded(isOpen ? null : req.id)}
@@ -92,7 +159,7 @@ export default function MyRequestsPage() {
             </button>
 
             {isOpen && (
-              <div className="mt-3 overflow-hidden rounded-[15px] border border-slate-100">
+              <div className="mt-3 overflow-x-auto rounded-[15px] border border-slate-100">
                 <table className="table-base">
                   <thead>
                     <tr>

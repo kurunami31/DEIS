@@ -1,8 +1,22 @@
 import { prisma } from '../lib/prisma.js';
 import { UnauthorizedError, ForbiddenError } from '../lib/http.js';
 import { verifyToken } from '../lib/tokens.js';
+import { SESSION_COOKIE } from '../lib/session.js';
+import { dpaConsentRequired } from '../lib/dpa.js';
 
-const SESSION_COOKIE = 'deis_session';
+// State-changing gates (mustChangePassword / DPA consent) must never lock the
+// user out of the routes that resolve them: those routes sit on an allowlist.
+const GATE_BYPASS_PATHS = new Set([
+  '/api/auth/me',
+  '/api/auth/logout',
+  '/api/auth/consent',
+  '/api/auth/set-initial-password',
+  '/api/auth/change-password',
+]);
+
+function requestPath(req) {
+  return `${req.baseUrl}${req.path}`;
+}
 
 function extractToken(req) {
   const fromCookie = req.cookies?.[SESSION_COOKIE];
@@ -35,8 +49,13 @@ export async function authenticate(req, res, next) {
   if (user.tokenVersion !== (payload.ver ?? 0)) {
     return next(new UnauthorizedError('Session revoked. Please login again'));
   }
-  if (user.mustChangePassword) {
-    return next(new ForbiddenError('You must set a new password before continuing', { code: 'MUST_CHANGE_PASSWORD' }));
+
+  const bypass = GATE_BYPASS_PATHS.has(requestPath(req));
+  if (user.mustChangePassword && !bypass) {
+    return next(new ForbiddenError('You must set a new password before continuing', 'MUST_CHANGE_PASSWORD'));
+  }
+  if (dpaConsentRequired(user) && !bypass) {
+    return next(new ForbiddenError('Data privacy consent is required before continuing', 'DPA_CONSENT_REQUIRED'));
   }
 
   req.user = user;

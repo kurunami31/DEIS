@@ -46,7 +46,9 @@ export async function createUnactivatedStudent() {
 
 /** Activates the test student through the real service (creates the account). */
 export async function activateTestStudent(password = TEST_STUDENT_PASSWORD) {
-  const session = await authService.activate(TEST_STUDENT_NO, TEST_ACTIVATION_CODE, password);
+  const session = await authService.activate(TEST_STUDENT_NO, TEST_ACTIVATION_CODE, password, {
+    dpaVersion: 1,
+  });
   const created = await prisma.studentProfile.findUnique({
     where: { studentNo: TEST_STUDENT_NO },
     include: { user: true },
@@ -81,6 +83,13 @@ export async function cleanupTestData() {
 
 export async function loginAs(identifier, password = demoPassword(identifier)) {
   const res = await api.post('/api/auth/login').send({ identifier, password });
+  // Mirrors a real user accepting the Data Privacy notice at portal entry.
+  if (res.body?.data?.token) {
+    await api
+      .post('/api/auth/consent')
+      .set('Authorization', `Bearer ${res.body.data.token}`)
+      .send({ version: 1 });
+  }
   return res;
 }
 

@@ -22,7 +22,7 @@ export function errorHandler(err, req, res, next) {
   if (err instanceof HttpError) {
     return res.status(err.status).json({
       error: {
-        code: err.name === 'HttpError' ? 'REQUEST_FAILED' : err.name,
+        code: err.code ?? (err.name === 'HttpError' ? 'REQUEST_FAILED' : err.name),
         message: err.message,
         ...(err.details ? { details: err.details } : {}),
       },

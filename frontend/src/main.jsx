@@ -5,8 +5,11 @@ import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { ToastProvider } from './context/ToastContext.jsx';
 import AppShell from './layouts/AppShell.jsx';
 import LoginPage from './pages/auth/LoginPage.jsx';
+import PromoPage from './pages/PromoPage.jsx';
 import VerifyPage from './pages/auth/VerifyPage.jsx';
 import ActivatePage from './pages/auth/ActivatePage.jsx';
+import ForcePasswordChangePage from './pages/auth/ForcePasswordChangePage.jsx';
+import DpaConsentGate from './components/DpaConsentGate.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import EnrollPage from './pages/student/EnrollPage.jsx';
 import MyRequestsPage from './pages/student/MyRequestsPage.jsx';
@@ -20,6 +23,7 @@ import AnalyticsPage from './pages/analytics/AnalyticsPage.jsx';
 import UsersPage from './pages/admin/UsersPage.jsx';
 import TermsPage from './pages/admin/TermsPage.jsx';
 import CatalogPage from './pages/admin/CatalogPage.jsx';
+import PolicyPage from './pages/admin/PolicyPage.jsx';
 import AuditPage from './pages/admin/AuditPage.jsx';
 import ClearancePage from './pages/student/ClearancePage.jsx';
 import ClearanceReviewPage from './pages/registrar/ClearanceReviewPage.jsx';
@@ -39,6 +43,8 @@ function RequireAuth({ roles, children }) {
   }
   if (!user) return <Navigate to="/login" replace />;
   if (roles && !roles.includes(user.role)) return <Navigate to="/" replace />;
+  if (user.mustChangePassword) return <ForcePasswordChangePage />;
+  if (user.dpaConsentRequired) return <DpaConsentGate />;
   return children;
 }
 
@@ -57,6 +63,7 @@ export default function App() {
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/verify" element={<VerifyPage />} />
+              <Route path="/promo" element={<PromoPage />} />
               <Route path="/activate" element={<ActivatePage />} />
 
               <Route
@@ -88,8 +95,9 @@ export default function App() {
 
                 <Route path="users" element={<RequireAuth roles={['ADMIN']}><UsersPage /></RequireAuth>} />
                 <Route path="terms" element={<RequireAuth roles={['ADMIN']}><TermsPage /></RequireAuth>} />
-                <Route path="catalog" element={<RequireAuth roles={['ADMIN']}><CatalogPage /></RequireAuth>} />
-                <Route path="audit" element={<RequireAuth roles={['ADMIN', 'REGISTRAR']}><AuditPage /></RequireAuth>} />
+<Route path="catalog" element={<RequireAuth roles={['ADMIN']}><CatalogPage /></RequireAuth>} />
+               <Route path="policy" element={<RequireAuth roles={['ADMIN']}><PolicyPage /></RequireAuth>} />
+               <Route path="audit" element={<RequireAuth roles={['ADMIN', 'REGISTRAR']}><AuditPage /></RequireAuth>} />
               </Route>
 
               <Route path="*" element={<NotFoundPage />} />

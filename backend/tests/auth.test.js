@@ -1,5 +1,7 @@
 import { beforeAll, afterAll, describe, expect, it } from 'vitest';
 import { api, loginAs, loginAsTestStudent, registrarToken, createUnactivatedStudent, activateTestStudent, cleanupTestData, authHeaders, TEST_STUDENT_NO, TEST_STUDENT_PASSWORD } from './helpers.js';
+import { demoPassword } from '../src/lib/passwords.js';
+import { CURRENT_DPA_VERSION } from '../src/lib/dpa.js';
 
 describe('auth', () => {
   beforeAll(createUnactivatedStudent);
@@ -25,18 +27,18 @@ describe('auth', () => {
   });
 
   it('rejects an incorrect activation code', async () => {
-    const res = await api.post('/api/auth/activate').send({ studentNo: TEST_STUDENT_NO, activationCode: '000000', password: 'DorsuStrong@123' });
+    const res = await api.post('/api/auth/activate').send({ studentNo: TEST_STUDENT_NO, activationCode: '000000', password: 'DorsuStrong@123', dpaVersion: 1 });
     expect(res.status).toBe(422);
   });
 
   it('activates the student and issues a token', async () => {
-    const res = await api.post('/api/auth/activate').send({ studentNo: TEST_STUDENT_NO, activationCode: '987654', password: TEST_STUDENT_PASSWORD });
+    const res = await api.post('/api/auth/activate').send({ studentNo: TEST_STUDENT_NO, activationCode: '987654', password: TEST_STUDENT_PASSWORD, dpaVersion: 1 });
     expect(res.status).toBe(201);
     expect(res.body.data.token).toBeTruthy();
   });
 
   it('blocks activation of an already-activated student', async () => {
-    const res = await api.post('/api/auth/activate').send({ studentNo: TEST_STUDENT_NO, activationCode: '987654', password: TEST_STUDENT_PASSWORD });
+    const res = await api.post('/api/auth/activate').send({ studentNo: TEST_STUDENT_NO, activationCode: '987654', password: TEST_STUDENT_PASSWORD, dpaVersion: 1 });
     expect(res.status).toBe(409);
   });
 
@@ -44,6 +46,38 @@ describe('auth', () => {
     const res = await loginAsTestStudent();
     expect(res.status).toBe(200);
     expect(res.body.data.user.student.studentNo).toBe(TEST_STUDENT_NO);
+  });
+
+  it('exposes consent state on /auth/me', async () => {
+    const res = await api.get('/api/auth/me').set(authHeaders((await loginAsTestStudent()).body.data.token));
+    expect(res.status).toBe(200);
+    expect(res.body.data.dpaConsentRequired).toBe(false);
+    expect(res.body.data.dpaConsentVersion).toBeGreaterThanOrEqual(1);
+  });
+
+  it('gates portal routes until consent is recorded', async () => {
+    // A fresh login (no consent recorded) must be blocked on portal routes.
+    const res = await api.post('/api/auth/login').send({ identifier: 'cashiering@dorsu.edu.ph', password: demoPassword('cashiering@dorsu.edu.ph') });
+    const token = res.body.data.token;
+    const blocked = await api.get('/api/calendar').set(authHeaders(token));
+    expect(blocked.status).toBe(403);
+    expect(blocked.body.error.code).toBe('DPA_CONSENT_REQUIRED');
+  });
+
+  it('rejects consent with a stale version', async () => {
+    const token = (await loginAsTestStudent()).body.data.token;
+    const res = await api.post('/api/auth/consent').set(authHeaders(token)).send({ version: CURRENT_DPA_VERSION + 1 });
+    expect(res.status).toBe(422);
+  });
+
+  it('records consent and unblocks the portal', async () => {
+    const res = await api.post('/api/auth/login').send({ identifier: 'registrar@dorsu.edu.ph', password: demoPassword('registrar@dorsu.edu.ph') });
+    const token = res.body.data.token;
+    const consent = await api.post('/api/auth/consent').set(authHeaders(token)).send({ version: 1 });
+    expect(consent.status).toBe(200);
+    expect(consent.body.data.dpaConsentVersion).toBe(1);
+    const calendar = await api.get('/api/calendar').set(authHeaders(token));
+    expect(calendar.status).toBe(200);
   });
 
   it('allows changing the password', async () => {

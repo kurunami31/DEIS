@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, CalendarDays, CheckCircle2, Clock, Info, Send } from 'lucide-react';
+import { AlertCircle, CalendarDays, CheckCircle2, Clock, Info, Send, Gauge, TriangleAlert } from 'lucide-react';
 import { request } from '../../lib/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
@@ -12,6 +12,7 @@ export default function EnrollPage() {
   const navigate = useNavigate();
   const [term, setTerm] = useState(null);
   const [sections, setSections] = useState([]);
+  const [evaluation, setEvaluation] = useState(null);
   const [spfCompleted, setSpfCompleted] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -24,6 +25,7 @@ export default function EnrollPage() {
       .then((data) => {
         setTerm(data.term);
         setSections(data.sections);
+        setEvaluation(data.evaluation);
       })
       .catch((err) => setError(err.message));
     request({ url: '/students/me' })
@@ -113,6 +115,45 @@ export default function EnrollPage() {
         </div>
       </section>
 
+      {evaluation && (
+        <section className="card card-pad">
+          <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
+            <div className="flex items-center gap-3">
+              <Gauge size={22} className="text-primary-600" />
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">General weighted average</p>
+                <p className="text-lg font-bold text-slate-800">
+                  {evaluation.gwa != null ? evaluation.gwa.toFixed(2) : '—'}
+                </p>
+              </div>
+            </div>
+
+            <div className="h-10 w-px bg-slate-100" />
+
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Allowed load</p>
+              <p className="text-lg font-bold text-slate-800">
+                {evaluation.allowedUnits != null ? `${evaluation.allowedUnits} units` : '—'}
+              </p>
+            </div>
+
+            <div className="h-10 w-px bg-slate-100" />
+
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Backlogs</p>
+              <p className={`text-lg font-bold ${evaluation.backlogs?.length ? 'text-red-600' : 'text-emerald-600'}`}>
+                {evaluation.backlogs?.length ?? 0}
+              </p>
+              {evaluation.backlogs?.length > 0 && (
+                <p className="max-w-md text-[11px] text-slate-500">
+                  {evaluation.backlogs.map((b) => `${b.code} (${b.units}u)`).join(', ')}
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
       <div className="grid gap-5 lg:grid-cols-3">
         <section className="card card-pad lg:col-span-2">
           <div className="mb-4 flex items-center justify-between gap-3">
@@ -198,9 +239,25 @@ export default function EnrollPage() {
               <span className="text-lg font-bold text-primary-700">{summary.units} units</span>
             </div>
 
-            <button
+            {evaluation?.allowedUnits != null && (
+              <p className={`mt-1.5 text-right text-[11px] font-medium ${summary.units > evaluation.allowedUnits ? 'text-red-600' : 'text-emerald-600'}`}>
+                {summary.units > evaluation.allowedUnits ? (
+                  <span className="inline-flex items-center gap-1">
+                    <TriangleAlert size={12} />
+                    Exceeds your allowed load of {evaluation.allowedUnits} units
+                  </span>
+                ) : (
+                  `${evaluation.allowedUnits - summary.units} units remaining of your allowed load`
+                )}
+              </p>
+            )}
+
+                        <button
               className="btn-primary mt-4 w-full"
-              disabled={summary.count === 0 || summary.conflict || submitting || !term?.enrollmentOpen || !spfCompleted}
+              disabled={
+                summary.count === 0 || summary.conflict || submitting || !term?.enrollmentOpen || !spfCompleted ||
+                (evaluation?.allowedUnits != null && summary.units > evaluation.allowedUnits)
+              }
               onClick={handleSubmit}
             >
               <Send size={15} />
