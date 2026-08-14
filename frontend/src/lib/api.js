@@ -48,6 +48,8 @@ export async function request({ method = 'get', url = '', data, params }) {
     const msg = body?.error?.message || (body?.error?.details?.length ? body.error.details[0].message : `Request failed (${res.status})`);
     const error = new Error(msg);
     error.status = res.status;
+    error.code = body?.error?.code;
+    error.maintenance = body?.error?.code === 'MAINTENANCE';
     error.details = body?.error?.details;
     error.body = body;
     throw error;

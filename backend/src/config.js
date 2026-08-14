@@ -13,6 +13,10 @@ const envSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   GOOGLE_REDIRECT_URI: z.string().optional(),
+  MAINTENANCE_MODE: z.enum(['true', 'false', '1', '0']).default('false'),
+  MAINTENANCE_MESSAGE: z
+    .string()
+    .default('The system is currently under maintenance. Please check back shortly.'),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -37,4 +41,6 @@ export const config = {
   googleClientId: parsed.data.GOOGLE_CLIENT_ID,
   googleClientSecret: parsed.data.GOOGLE_CLIENT_SECRET,
   googleRedirectUri: parsed.data.GOOGLE_REDIRECT_URI,
+  maintenanceMode: ['true', '1'].includes(parsed.data.MAINTENANCE_MODE),
+  maintenanceMessage: parsed.data.MAINTENANCE_MESSAGE,
 };

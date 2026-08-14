@@ -103,8 +103,19 @@ export function createApp() {
   app.use(express.urlencoded({ extended: false }));
 
   app.get('/api/health', (req, res) => {
+    if (config.maintenanceMode) {
+      return res.json({ data: { status: 'maintenance', message: config.maintenanceMessage } });
+    }
     res.json({ data: { status: 'ok', name: 'deis-api', time: new Date().toISOString() } });
   });
+
+  // Maintenance mode: the health check stays public so the frontend can detect
+  // the flag, but every other API route is short-circuited with a 503.
+  if (config.maintenanceMode) {
+    app.use('/api', (req, res) => {
+      res.status(503).json({ error: { code: 'MAINTENANCE', message: config.maintenanceMessage } });
+    });
+  }
 
   app.use('/api', routes);
 

@@ -17,26 +17,6 @@ const FEATURES = [
   { icon: BarChart3, label: 'Institution analytics' },
 ];
 
-const OAUTH_ERRORS = {
-  not_configured: 'Google sign-in is not configured on this portal yet.',
-  invalid_state: 'The Google sign-in session expired. Please try again.',
-  missing_code: 'Google did not return an authorization code. Please try again.',
-  token_exchange: 'Google rejected the authorization. Please try again.',
-  token_invalid: 'The Google sign-in could not be verified. Please try again.',
-  not_registered: 'This Google account is not linked to any DOrSU portal account.',
-};
-
-function GoogleIcon() {
-  return (
-    <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true">
-      <path fill="#4285F4" d="M23.5 12.27c0-.79-.07-1.54-.2-2.27H12v4.51h6.45c-.29 1.48-1.15 2.73-2.44 3.58v3h3.94c2.31-2.13 3.55-5.27 3.55-8.82z" />
-      <path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.95-2.91l-3.94-3c-1.09.73-2.49 1.17-4.01 1.17-3.06 0-5.66-2.07-6.59-4.86H1.3v3.09C3.29 21.31 7.35 24 12 24z" />
-      <path fill="#FBBC05" d="M5.41 14.4a7.2 7.2 0 0 1 0-4.8V6.51H1.3a12 12 0 0 0 0 10.98l4.11-3.09z" />
-      <path fill="#EA4335" d="M12 4.79c1.77 0 3.35.61 4.6 1.8l3.43-3.43C17.95 1.19 15.24 0 12 0 7.35 0 3.29 2.69 1.3 6.51l4.11 3.09c.93-2.79 3.53-4.81 6.59-4.81z" />
-    </svg>
-  );
-}
-
 export default function LoginPage() {
   const { login, loginTotp } = useAuth();
   const toast = useToast();
@@ -46,12 +26,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('oauth') !== 'error') return null;
-    window.history.replaceState({}, '', window.location.pathname);
-    return OAUTH_ERRORS[params.get('reason')] ?? 'Google sign-in failed. Please try again.';
-  });
+  const [error, setError] = useState(null);
 
   // Two-factor step
   const [challenge, setChallenge] = useState(null);
@@ -375,21 +350,6 @@ export default function LoginPage() {
                 </form>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <button
-                    type="button"
-                    onClick={() => { window.location.href = '/api/auth/google'; }}
-                    className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-                  >
-                    <GoogleIcon />
-                    Sign in with Google
-                  </button>
-
-                  <div className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-widest text-slate-400">
-                    <span className="h-px flex-1 bg-slate-200" />
-                    or use your DOrSU credentials
-                    <span className="h-px flex-1 bg-slate-200" />
-                  </div>
-
                   <div>
                     <label className="label" htmlFor="identifier">Email or Student Number</label>
                     <div className="relative">

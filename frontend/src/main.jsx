@@ -1,4 +1,4 @@
-import { StrictMode } from 'react';
+import { StrictMode, useCallback, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
@@ -31,6 +31,7 @@ import ClearanceReviewPage from './pages/registrar/ClearanceReviewPage.jsx';
 import CalendarPage from './pages/CalendarPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
+import MaintenancePage from './pages/MaintenancePage.jsx';
 import './index.css';
 
 function RequireAuth({ roles, children }) {
@@ -55,7 +56,43 @@ function HomeRedirect() {
   return <Navigate to="/dashboard" replace />;
 }
 
+function LoadingScreen() {
+  return (
+    <div className="flex h-screen items-center justify-center bg-slate-100">
+      <span className="size-8 animate-spin rounded-full border-4 border-primary-200 border-t-primary-600" />
+    </div>
+  );
+}
+
 export default function App() {
+  const [maintenance, setMaintenance] = useState(null); // null = checking
+  const [maintenanceMessage, setMaintenanceMessage] = useState(null);
+
+  const checkMaintenance = useCallback(() => {
+    fetch('/api/health', { credentials: 'include' })
+      .then((r) => r.json().catch(() => null))
+      .then((body) => {
+        if (body?.data?.status === 'maintenance') {
+          setMaintenanceMessage(body.data.message ?? null);
+          setMaintenance(true);
+        } else {
+          setMaintenance(false);
+        }
+      })
+      .catch(() => setMaintenance(false));
+  }, []);
+
+  useEffect(() => {
+    checkMaintenance();
+    // Re-check periodically so the site comes back automatically when
+    // maintenance ends, without requiring a manual refresh.
+    const timer = setInterval(checkMaintenance, 30_000);
+    return () => clearInterval(timer);
+  }, [checkMaintenance]);
+
+  if (maintenance) return <MaintenancePage message={maintenanceMessage} />;
+  if (maintenance === null) return <LoadingScreen />;
+
   return (
     <StrictMode>
       <BrowserRouter>
@@ -97,9 +134,9 @@ export default function App() {
 
                 <Route path="users" element={<RequireAuth roles={['ADMIN']}><UsersPage /></RequireAuth>} />
                 <Route path="terms" element={<RequireAuth roles={['ADMIN']}><TermsPage /></RequireAuth>} />
-<Route path="catalog" element={<RequireAuth roles={['ADMIN']}><CatalogPage /></RequireAuth>} />
-               <Route path="policy" element={<RequireAuth roles={['ADMIN']}><PolicyPage /></RequireAuth>} />
-               <Route path="audit" element={<RequireAuth roles={['ADMIN', 'REGISTRAR']}><AuditPage /></RequireAuth>} />
+                <Route path="catalog" element={<RequireAuth roles={['ADMIN']}><CatalogPage /></RequireAuth>} />
+                <Route path="policy" element={<RequireAuth roles={['ADMIN']}><PolicyPage /></RequireAuth>} />
+                <Route path="audit" element={<RequireAuth roles={['ADMIN', 'REGISTRAR']}><AuditPage /></RequireAuth>} />
               </Route>
 
               <Route path="*" element={<NotFoundPage />} />
