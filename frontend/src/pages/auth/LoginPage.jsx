@@ -170,9 +170,7 @@ export default function LoginPage() {
             ))}
           </div>
           <p className="text-xs text-primary-200">
-            Main Campus · Mati City, Davao Oriental · est. 1989 ·{' '}
-            <Link to="/promo" className="underline underline-offset-2 hover:text-white">Watch the promo</Link>
-            {' '}·{' '}
+            Main Campus · Mati City, Davao Oriental ·{' '}
             <a
               href="https://www.facebook.com/dorsuofficial"
               target="_blank"
