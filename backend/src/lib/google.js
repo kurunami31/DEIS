@@ -58,7 +58,9 @@ export async function verifyGoogleIdToken(idToken, fetchImpl = fetch) {
   if (!res.ok || payload.aud !== config.googleClientId) {
     throw new GoogleOAuthError('Google ID token validation failed.', 'GOOGLE_TOKEN_INVALID');
   }
-  if (!payload.email || payload.email_verified !== true) {
+  // tokeninfo returns email_verified as the string "true"/"false", not a boolean.
+  const emailVerified = payload.email_verified === true || payload.email_verified === 'true';
+  if (!payload.email || !emailVerified) {
     throw new GoogleOAuthError('Google account email is not verified.', 'GOOGLE_EMAIL_UNVERIFIED');
   }
   return payload;
