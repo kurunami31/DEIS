@@ -259,30 +259,31 @@ router.get(
   asyncHandler(async (req, res) => {
     const stateCookie = req.cookies?.[OAUTH_STATE_COOKIE];
     res.clearCookie(OAUTH_STATE_COOKIE, { httpOnly: true, secure: true, sameSite: 'strict', path: '/' });
-    if (!googleConfigured()) return oauthFail(res, 'not_configured');
-    if (!stateCookie || stateCookie !== req.query.state) return oauthFail(res, 'invalid_state');
+    const fail = (reason, meta = {}) => {
+      audit({ action: 'GOOGLE_OAUTH_FAILED', entityType: 'user', entityId: null, meta: { reason, ip: req.ip, ...meta } });
+      return oauthFail(res, reason);
+    };
+    if (!googleConfigured()) return fail('not_configured');
+    if (!stateCookie || stateCookie !== req.query.state) return fail('invalid_state');
     const { code } = req.query;
-    if (typeof code !== 'string' || !code) return oauthFail(res, 'missing_code');
+    if (typeof code !== 'string' || !code) return fail('missing_code');
     let idToken;
     try {
       idToken = await exchangeCodeForIdToken({ code, redirectUri: oauthRedirectUri(req) });
-    } catch {
-      return oauthFail(res, 'token_exchange');
+    } catch (err) {
+      return fail('token_exchange', { error: err.message });
     }
     let payload;
     try {
       payload = await verifyGoogleIdToken(idToken);
-    } catch {
-      return oauthFail(res, 'token_invalid');
+    } catch (err) {
+      return fail('token_invalid', { error: err.message });
     }
     const user = await prisma.user.findFirst({
       where: { email: payload.email.toLowerCase() },
       include: { student: true },
     });
-    if (!user) {
-      await audit({ action: 'GOOGLE_OAUTH_FAILED', entityType: 'user', entityId: null, meta: { email: payload.email, reason: 'not_registered', ip: req.ip } });
-      return oauthFail(res, 'not_registered');
-    }
+    if (!user) return fail('not_registered', { email: payload.email });
     const session = await authService.oauthSession(user, { ip: req.ip });
     setSessionCookie(res, session.token);
     return res.redirect(302, `${frontendOrigin()}/oauth/callback`);

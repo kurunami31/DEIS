@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import crypto from 'node:crypto';
 import { prisma } from '../../lib/prisma.js';
-import { asyncHandler, ok } from '../../lib/http.js';
+import { asyncHandler, ok, created, ConflictError, UnprocessableError } from '../../lib/http.js';
 import { validate } from '../../middleware/validate.js';
 import { authenticate, allowRoles, requireStudent } from '../../middleware/auth.js';
+import { audit } from '../../lib/audit.js';
 
 const router = Router();
 
@@ -139,6 +141,161 @@ router.get(
       },
     });
     return ok(res, student);
+  }),
+);
+
+const createStudentSchema = z.object({
+  studentNo: z.string().trim().min(1).max(20),
+  firstName: z.string().trim().min(1).max(50),
+  lastName: z.string().trim().min(1).max(50),
+  sex: z.enum(['MALE', 'FEMALE']),
+  yearLevel: z.coerce.number().int().min(1).max(6).default(1),
+  strand: z.string().trim().max(20).optional(),
+  programCode: z.string().trim().min(1).max(20),
+  campusCode: z.string().trim().min(1).max(20),
+});
+
+async function generateActivationCode() {
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const code = crypto.randomInt(0, 1_000_000).toString().padStart(6, '0');
+    const existing = await prisma.studentProfile.findUnique({ where: { activationCode: code } });
+    if (!existing) return code;
+  }
+  throw new Error('Could not generate a unique activation code.');
+}
+
+async function resolveProgramAndCampus(programCode, campusCode) {
+  const [program, campus] = await Promise.all([
+    prisma.program.findUnique({ where: { code: programCode } }),
+    prisma.campus.findUnique({ where: { code: campusCode } }),
+  ]);
+  if (!program) throw new UnprocessableError(`Unknown program code "${programCode}".`);
+  if (!campus) throw new UnprocessableError(`Unknown campus code "${campusCode}".`);
+  return { programId: program.id, campusId: campus.id };
+}
+
+async function createStudentRecord({ studentNo, firstName, lastName, sex, yearLevel, strand, programCode, campusCode }, actorId) {
+  const { programId, campusId } = await resolveProgramAndCampus(programCode, campusCode);
+  const activationCode = await generateActivationCode();
+  try {
+    const student = await prisma.studentProfile.create({
+      data: { studentNo, firstName, lastName, sex, yearLevel, strand, programId, campusId, activationCode },
+    });
+    await audit({ actorId, action: 'STUDENT_REGISTERED', entityType: 'student', entityId: student.id, meta: { studentNo } });
+    return student;
+  } catch (err) {
+    if (err.code === 'P2002') {
+      throw new ConflictError(`Student number "${studentNo}" already exists.`);
+    }
+    throw err;
+  }
+}
+
+router.post(
+  '/',
+  authenticate,
+  allowRoles('REGISTRAR', 'ADMIN', 'ADMISSION'),
+  validate(createStudentSchema),
+  asyncHandler(async (req, res) => {
+    const student = await createStudentRecord(req.body, req.user.id);
+    return created(res, { student, activationCode: student.activationCode });
+  }),
+);
+
+// Minimal CSV parser that honors double-quoted fields (RFC 4180 style).
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') {
+          field += '"';
+          i += 1;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += ch;
+      }
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ',') {
+      row.push(field);
+      field = '';
+    } else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && text[i + 1] === '\n') i += 1;
+      if (field !== '' || row.length > 0) {
+        row.push(field);
+        rows.push(row);
+      }
+      row = [];
+      field = '';
+    } else {
+      field += ch;
+    }
+  }
+  if (field !== '' || row.length > 0) {
+    row.push(field);
+    rows.push(row);
+  }
+  return rows.filter((r) => r.some((cell) => cell.trim() !== ''));
+}
+
+const REQUIRED_CSV_HEADERS = ['studentno', 'lastname', 'firstname', 'sex', 'yearlevel', 'programcode', 'campuscode'];
+
+const importSchema = z.object({
+  csv: z.string().min(1, 'CSV content is required'),
+});
+
+router.post(
+  '/import',
+  authenticate,
+  allowRoles('REGISTRAR', 'ADMIN', 'ADMISSION'),
+  validate(importSchema),
+  asyncHandler(async (req, res) => {
+    const rows = parseCsv(req.body.csv);
+    if (rows.length < 2) throw new UnprocessableError('CSV must contain a header row and at least one student row.');
+    const header = rows[0].map((h) => h.trim().toLowerCase());
+    for (const required of REQUIRED_CSV_HEADERS) {
+      if (!header.includes(required)) {
+        throw new UnprocessableError(`CSV is missing the required column "${required}".`);
+      }
+    }
+    const col = (row, name) => {
+      const idx = header.indexOf(name.toLowerCase());
+      return idx >= 0 ? row[idx]?.trim() ?? '' : '';
+    };
+
+    const created = [];
+    const failed = [];
+    for (let i = 1; i < rows.length; i += 1) {
+      const record = {
+        studentNo: col(rows[i], 'studentNo'),
+        lastName: col(rows[i], 'lastName'),
+        firstName: col(rows[i], 'firstName'),
+        sex: col(rows[i], 'sex').toUpperCase(),
+        yearLevel: Number(col(rows[i], 'yearLevel')) || 1,
+        strand: col(rows[i], 'strand') || undefined,
+        programCode: col(rows[i], 'programCode'),
+        campusCode: col(rows[i], 'campusCode'),
+      };
+      const parsed = createStudentSchema.safeParse(record);
+      if (!parsed.success) {
+        failed.push({ row: i + 1, studentNo: record.studentNo, error: parsed.error.issues[0]?.message ?? 'Invalid row.' });
+        continue;
+      }
+      try {
+        const student = await createStudentRecord(parsed.data, req.user.id);
+        created.push({ studentNo: student.studentNo, activationCode: student.activationCode });
+      } catch (err) {
+        failed.push({ row: i + 1, studentNo: record.studentNo, error: err.message });
+      }
+    }
+    return ok(res, { created, failed, createdCount: created.length, failedCount: failed.length });
   }),
 );
 
