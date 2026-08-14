@@ -10,7 +10,7 @@
   ],
   "functions": {
     "api/index.mjs": {
-      "regions": ["sin1"],
+      "regions": ["nrt1"],
       "includeFiles": "backend/node_modules/.prisma/**"
     }
   }
