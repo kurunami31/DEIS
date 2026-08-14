@@ -155,6 +155,16 @@ const FACULTY_NAMES = [
   'Ronnel A. Damole', 'Melchora T. Cando', 'Jessabel T. Escobar',
 ];
 
+// Staff/section accounts display their office instead of a personal name.
+const FACULTY_OFFICES = [
+  'Faculty of Computing and Engineering',
+  'Faculty of Business and Management',
+  'Faculty of Education',
+  'Faculty of Nursing and Allied Health Sciences',
+  'Faculty of Agriculture and Fisheries',
+  'Faculty of Science and Technology',
+];
+
 const EMAIL_TITLES = new Set(['engr', 'dr', 'prof', 'sir', 'madam']);
 
 /** Faculty accounts use their school email: <first>.<last>@dorsu.edu.ph */
@@ -213,11 +223,11 @@ async function main() {
   // Every staff account gets its own unique generated password derived from
   // its email, so credentials are never shared across accounts.
   const staffDefs = [
-    { email: 'registrar@dorsu.edu.ph', fullName: 'Luminary M. Bandola', role: 'REGISTRAR' },
-    { email: 'admin@dorsu.edu.ph', fullName: 'Christopher L. Mercado', role: 'ADMIN' },
-    ...FACULTY_NAMES.map((name) => ({
+    { email: 'registrar@dorsu.edu.ph', fullName: 'Office of the Registrar', role: 'REGISTRAR' },
+    { email: 'admin@dorsu.edu.ph', fullName: 'DEIS Administration', role: 'ADMIN' },
+    ...FACULTY_NAMES.map((name, idx) => ({
       email: schoolEmailFromName(name),
-      fullName: name,
+      fullName: FACULTY_OFFICES[idx],
       role: 'FACULTY',
     })),
     { email: 'accounting@dorsu.edu.ph', fullName: 'Finance & Accounting Office', role: 'ACCOUNTING' },
