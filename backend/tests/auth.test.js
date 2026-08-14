@@ -1,7 +1,15 @@
-import { beforeAll, afterAll, describe, expect, it } from 'vitest';
+import { beforeAll, afterAll, describe, expect, it, vi } from 'vitest';
 import { api, loginAs, loginAsTestStudent, registrarToken, createUnactivatedStudent, activateTestStudent, cleanupTestData, authHeaders, TEST_STUDENT_NO, TEST_STUDENT_PASSWORD } from './helpers.js';
 import { demoPassword } from '../src/lib/passwords.js';
 import { CURRENT_DPA_VERSION } from '../src/lib/dpa.js';
+
+vi.mock('../src/lib/google.js', () => ({
+  buildAuthorizationUrl: vi.fn(() => 'https://accounts.google.com/o/oauth2/v2/auth?test=1'),
+  exchangeCodeForIdToken: vi.fn(async () => 'fake-id-token'),
+  verifyGoogleIdToken: vi.fn(),
+}));
+
+const OAUTH_STATE = 'test-oauth-state-123';
 
 describe('auth', () => {
   beforeAll(createUnactivatedStudent);
@@ -96,5 +104,51 @@ describe('auth', () => {
       .post('/api/auth/change-password')
       .set(authHeaders(relogin.body.data.token))
       .send({ currentPassword: 'DorsuStrong@456', newPassword: TEST_STUDENT_PASSWORD });
+  });
+});
+
+describe('auth / google oauth', () => {
+  beforeAll(createUnactivatedStudent);
+  afterAll(cleanupTestData);
+
+  it('redirects to Google with a state cookie', async () => {
+    const res = await api.get('/api/auth/google');
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toContain('accounts.google.com');
+    const setCookie = res.headers['set-cookie'].join(';');
+    expect(setCookie).toContain('__Host-deis_oauth_state=');
+  });
+
+  it('signs an existing user in from the callback', async () => {
+    await activateTestStudent();
+    const { verifyGoogleIdToken } = await import('../src/lib/google.js');
+    verifyGoogleIdToken.mockResolvedValue({ email: `${TEST_STUDENT_NO.toLowerCase()}@students.dorsu.edu.ph` });
+    const res = await api
+      .get('/api/auth/google/callback')
+      .query({ state: OAUTH_STATE, code: 'test-code' })
+      .set('Cookie', `__Host-deis_oauth_state=${OAUTH_STATE}`);
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe('http://localhost:5173/oauth/callback');
+    expect(res.headers['set-cookie'].join(';')).toContain('deis_session=');
+  });
+
+  it('rejects a mismatched state', async () => {
+    const res = await api
+      .get('/api/auth/google/callback')
+      .query({ state: 'wrong-state', code: 'test-code' })
+      .set('Cookie', `__Host-deis_oauth_state=${OAUTH_STATE}`);
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toContain('reason=invalid_state');
+  });
+
+  it('redirects unknown emails to the login page', async () => {
+    const { verifyGoogleIdToken } = await import('../src/lib/google.js');
+    verifyGoogleIdToken.mockResolvedValueOnce({ email: 'stranger@example.com' });
+    const res = await api
+      .get('/api/auth/google/callback')
+      .query({ state: OAUTH_STATE, code: 'test-code' })
+      .set('Cookie', `__Host-deis_oauth_state=${OAUTH_STATE}`);
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toContain('reason=not_registered');
   });
 });

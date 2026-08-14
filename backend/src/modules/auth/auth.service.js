@@ -541,6 +541,27 @@ function assertConsentVersion(dpaVersion) {
   }
 }
 
+/**
+ * Google OAuth sign-in: Google proves the email address, the DEIS account is
+ * looked up by that email and a normal session is minted. TOTP stays enabled
+ * on the account (still required for password sign-in) but Google itself acts
+ * as the second factor on this path.
+ */
+export async function oauthSession(user, { ip } = {}) {
+  if (!user.isActive) throw new UnauthorizedError('This account has been deactivated.');
+  await audit({
+    actorId: user.id,
+    action: 'GOOGLE_OAUTH_LOGIN',
+    entityType: 'user',
+    entityId: user.id,
+    meta: { email: user.email, ip },
+  });
+  return {
+    token: signToken(user),
+    user: serializeUser(user),
+  };
+}
+
 export function serializeUser(user) {
   return {
     id: user.id,

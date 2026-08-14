@@ -77,6 +77,9 @@ export async function cleanupTestData() {
   await prisma.gradeRecord.deleteMany({ where: { studentId: testStudentId } });
   await prisma.studentProfile.deleteMany({ where: { id: testStudentId } });
   if (testUserId) await prisma.user.deleteMany({ where: { id: testUserId } });
+  await prisma.user.deleteMany({
+    where: { OR: [{ email: `${TEST_STUDENT_NO.toLowerCase()}@students.dorsu.edu.ph` }, { email: 'tst-student@students.dorsu.edu.ph' }] },
+  });
   testStudentId = null;
   testUserId = null;
 }

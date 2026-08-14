@@ -10,6 +10,9 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
   GROQ_API_KEY: z.string().optional(),
   GROQ_MODEL: z.string().default('llama-3.3-70b-versatile'),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_REDIRECT_URI: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -31,4 +34,7 @@ export const config = {
   isTest: parsed.data.NODE_ENV === 'test',
   groqApiKey: parsed.data.GROQ_API_KEY,
   groqModel: parsed.data.GROQ_MODEL,
+  googleClientId: parsed.data.GOOGLE_CLIENT_ID,
+  googleClientSecret: parsed.data.GOOGLE_CLIENT_SECRET,
+  googleRedirectUri: parsed.data.GOOGLE_REDIRECT_URI,
 };

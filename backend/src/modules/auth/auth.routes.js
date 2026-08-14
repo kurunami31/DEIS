@@ -1,8 +1,13 @@
 import { Router } from 'express';
+import crypto from 'node:crypto';
 import { authLimiter, loginIpLimiter, verifyLimiter, activateLimiter, consentLimiter, totpLimiter } from '../../lib/rate-limit.js';
 import { validate } from '../../middleware/validate.js';
 import { authenticate } from '../../middleware/auth.js';
-import { asyncHandler, ok, created } from '../../lib/http.js';
+import { asyncHandler, ok, created, HttpError } from '../../lib/http.js';
+import { audit } from '../../lib/audit.js';
+import { prisma } from '../../lib/prisma.js';
+import { config } from '../../config.js';
+import { buildAuthorizationUrl, exchangeCodeForIdToken, verifyGoogleIdToken } from '../../lib/google.js';
 import {
   verifyStudentSchema,
   activateSchema,
@@ -200,6 +205,87 @@ router.post(
     const result = await authService.setInitialPassword(req.user.id, req.body.newPassword);
     setSessionCookie(res, result.token);
     return ok(res, { ok: true });
+  }),
+);
+
+// --- Google OAuth (Sign in with Google) ---
+
+const OAUTH_STATE_COOKIE = '__Host-deis_oauth_state';
+const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
+
+function oauthStateCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'strict',
+    path: '/',
+    maxAge: OAUTH_STATE_TTL_MS / 1000,
+  };
+}
+
+function frontendOrigin() {
+  return config.corsOrigins[0] ?? 'http://localhost:5173';
+}
+
+function oauthRedirectUri(req) {
+  if (config.googleRedirectUri) return config.googleRedirectUri;
+  const proto = ['https', 'http'].includes(req.get('x-forwarded-proto')) ? req.get('x-forwarded-proto') : req.protocol;
+  return `${proto}://${req.get('host')}/api/auth/google/callback`;
+}
+
+function googleConfigured() {
+  return Boolean(config.googleClientId && config.googleClientSecret);
+}
+
+function oauthFail(res, reason) {
+  return res.redirect(302, `${frontendOrigin()}/login?oauth=error&reason=${encodeURIComponent(reason)}`);
+}
+
+router.get(
+  '/google',
+  loginIpLimiter,
+  asyncHandler(async (req, res) => {
+    if (!googleConfigured()) throw new HttpError(503, 'GOOGLE_OAUTH_NOT_CONFIGURED', 'Google sign-in is not configured on this server.');
+    const state = crypto.randomBytes(24).toString('hex');
+    res.cookie(OAUTH_STATE_COOKIE, state, oauthStateCookieOptions());
+    const url = buildAuthorizationUrl({ state, redirectUri: oauthRedirectUri(req) });
+    return res.redirect(302, url);
+  }),
+);
+
+router.get(
+  '/google/callback',
+  loginIpLimiter,
+  asyncHandler(async (req, res) => {
+    const stateCookie = req.cookies?.[OAUTH_STATE_COOKIE];
+    res.clearCookie(OAUTH_STATE_COOKIE, { httpOnly: true, secure: true, sameSite: 'strict', path: '/' });
+    if (!googleConfigured()) return oauthFail(res, 'not_configured');
+    if (!stateCookie || stateCookie !== req.query.state) return oauthFail(res, 'invalid_state');
+    const { code } = req.query;
+    if (typeof code !== 'string' || !code) return oauthFail(res, 'missing_code');
+    let idToken;
+    try {
+      idToken = await exchangeCodeForIdToken({ code, redirectUri: oauthRedirectUri(req) });
+    } catch {
+      return oauthFail(res, 'token_exchange');
+    }
+    let payload;
+    try {
+      payload = await verifyGoogleIdToken(idToken);
+    } catch {
+      return oauthFail(res, 'token_invalid');
+    }
+    const user = await prisma.user.findFirst({
+      where: { email: payload.email.toLowerCase() },
+      include: { student: true },
+    });
+    if (!user) {
+      await audit({ action: 'GOOGLE_OAUTH_FAILED', entityType: 'user', entityId: null, meta: { email: payload.email, reason: 'not_registered', ip: req.ip } });
+      return oauthFail(res, 'not_registered');
+    }
+    const session = await authService.oauthSession(user, { ip: req.ip });
+    setSessionCookie(res, session.token);
+    return res.redirect(302, `${frontendOrigin()}/oauth/callback`);
   }),
 );
 

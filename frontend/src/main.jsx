@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { ToastProvider } from './context/ToastContext.jsx';
 import AppShell from './layouts/AppShell.jsx';
 import LoginPage from './pages/auth/LoginPage.jsx';
+import OAuthCallbackPage from './pages/auth/OAuthCallbackPage.jsx';
 import PromoPage from './pages/PromoPage.jsx';
 import VerifyPage from './pages/auth/VerifyPage.jsx';
 import ActivatePage from './pages/auth/ActivatePage.jsx';
@@ -62,6 +63,7 @@ export default function App() {
           <ToastProvider>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
               <Route path="/verify" element={<VerifyPage />} />
               <Route path="/promo" element={<PromoPage />} />
               <Route path="/activate" element={<ActivatePage />} />
