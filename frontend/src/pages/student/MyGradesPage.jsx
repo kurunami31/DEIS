@@ -152,11 +152,10 @@ export default function MyGradesPage() {
         </section>
       </div>
 
-      {grandTotal > 0 && (
-        <section className="card card-pad">
-          <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-600">
-            <CalendarDays size={15} className="text-primary-600" /> Academic Year &amp; Semester
-          </h3>
+      <section className="card card-pad">
+        <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-600">
+          <CalendarDays size={15} className="text-primary-600" /> Academic Year &amp; Semester
+        </h3>
           <div className="mt-3 flex flex-wrap gap-4">
             <div className="min-w-44">
               <label className="label">Academic Year</label>
@@ -181,14 +180,12 @@ export default function MyGradesPage() {
               </select>
             </div>
           </div>
-        </section>
-      )}
+      </section>
 
-      {grandTotal > 0 && (
-        <section className="card card-pad">
-          <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-600">
-            <GraduationCap size={15} className="text-primary-600" /> Grade Record
-          </h3>
+      <section className="card card-pad">
+        <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-600">
+          <GraduationCap size={15} className="text-primary-600" /> Grade Record
+        </h3>
           {year && sem ? (
             rows.length > 0 ? (
               <div className="mt-3 overflow-hidden rounded-[15px] border border-slate-100">
@@ -248,14 +245,12 @@ export default function MyGradesPage() {
           ) : (
             <p className="mt-4 text-center text-sm text-slate-400">No records to display.</p>
           )}
-        </section>
-      )}
+      </section>
 
-      {grandTotal > 0 && (
-        <section className="card card-pad">
-          <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-600">
-            <Scale size={15} className="text-primary-600" /> Approximate Equivalents
-          </h3>
+      <section className="card card-pad">
+        <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-600">
+          <Scale size={15} className="text-primary-600" /> Approximate Equivalents
+        </h3>
           <ul className="mt-3 grid gap-x-8 gap-y-2 text-sm text-slate-600 sm:grid-cols-2">
             {EQUIVALENTS.map(([range, label]) => (
               <li key={range} className="flex items-center justify-between border-b border-slate-100 pb-1.5">
@@ -264,8 +259,7 @@ export default function MyGradesPage() {
               </li>
             ))}
           </ul>
-        </section>
-      )}
+      </section>
 
       {grandTotal === 0 && (
         <div className="card card-pad py-14 text-center">
@@ -275,23 +269,21 @@ export default function MyGradesPage() {
         </div>
       )}
 
-      {grandTotal > 0 && (
-        <section className="card card-pad">
-          <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-600">
-            <Info size={15} className="text-primary-600" /> Legend
-          </h3>
-          <div className="mt-3 space-y-2 text-sm text-slate-600">
-            <div className="flex items-start gap-2.5">
-              <span className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded bg-orange-500 text-[11px] font-bold text-white">1</span>
-              <p>Subjects that need to be completed within one year; otherwise, your grade will automatically be a 5.00.</p>
-            </div>
-            <div className="flex items-start gap-2.5">
-              <span className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded bg-red-600 text-[11px] font-bold text-white">2</span>
-              <p>Re-enrolled for the next available offering of the subject.</p>
-            </div>
+      <section className="card card-pad">
+        <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-600">
+          <Info size={15} className="text-primary-600" /> Legend
+        </h3>
+        <div className="mt-3 space-y-2 text-sm text-slate-600">
+          <div className="flex items-start gap-2.5">
+            <span className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded bg-orange-500 text-[11px] font-bold text-white">1</span>
+            <p>Subjects that need to be completed within one year; otherwise, your grade will automatically be a 5.00.</p>
           </div>
-        </section>
-      )}
+          <div className="flex items-start gap-2.5">
+            <span className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded bg-red-600 text-[11px] font-bold text-white">2</span>
+            <p>Re-enrolled for the next available offering of the subject.</p>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

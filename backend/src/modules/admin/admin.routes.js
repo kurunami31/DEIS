@@ -112,7 +112,7 @@ router.patch(
 router.get(
   '/audit',
   authenticate,
-  allowRoles('ADMIN', 'REGISTRAR'),
+  allowRoles('ADMIN'),
   asyncHandler(async (req, res) => {
     const logs = await prisma.activityRecord.findMany({
       include: { actor: { select: { fullName: true, role: true } } },

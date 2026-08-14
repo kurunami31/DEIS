@@ -136,7 +136,7 @@ export default function App() {
                 <Route path="terms" element={<RequireAuth roles={['ADMIN']}><TermsPage /></RequireAuth>} />
                 <Route path="catalog" element={<RequireAuth roles={['ADMIN']}><CatalogPage /></RequireAuth>} />
                 <Route path="policy" element={<RequireAuth roles={['ADMIN']}><PolicyPage /></RequireAuth>} />
-                <Route path="audit" element={<RequireAuth roles={['ADMIN', 'REGISTRAR']}><AuditPage /></RequireAuth>} />
+                <Route path="audit" element={<RequireAuth roles={['ADMIN']}><AuditPage /></RequireAuth>} />
               </Route>
 
               <Route path="*" element={<NotFoundPage />} />

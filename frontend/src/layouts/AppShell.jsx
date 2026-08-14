@@ -61,7 +61,7 @@ const NAV_GROUPS = [
   },
   {
     label: 'System',
-    roles: ['ADMIN', 'REGISTRAR'],
+    roles: ['ADMIN'],
     items: [{ to: '/audit', label: 'Activity Log', icon: Activity }],
   },
 ];
