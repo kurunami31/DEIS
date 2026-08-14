@@ -195,12 +195,12 @@ function EditTab({ profile, onSaved }) {
       </h3>
       <form onSubmit={handleSave} className="mt-4 space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
-          <FieldInput label="Middle name" value={form.middleName} onChange={(v) => setForm({ ...form, middleName: v })} />
-          <FieldInput label="Personal email" type="email" value={form.personalEmail} onChange={(v) => setForm({ ...form, personalEmail: v })} />
-          <FieldInput label="Contact number" value={form.contactNumber} onChange={(v) => setForm({ ...form, contactNumber: v })} />
-          <FieldInput label="Religion" value={form.religion} onChange={(v) => setForm({ ...form, religion: v })} />
-          <FieldInput label="Tribe / Ethnic group" value={form.tribe} onChange={(v) => setForm({ ...form, tribe: v })} />
-          <FieldInput label="Zip code" value={form.zipCode} onChange={(v) => setForm({ ...form, zipCode: v })} />
+          <FieldInput label="Middle name" value={form.middleName} onChange={(e) => setForm({ ...form, middleName: e.target.value })} />
+          <FieldInput label="Personal email" type="email" value={form.personalEmail} onChange={(e) => setForm({ ...form, personalEmail: e.target.value })} />
+          <FieldInput label="Contact number" value={form.contactNumber} onChange={(e) => setForm({ ...form, contactNumber: e.target.value })} />
+          <FieldInput label="Religion" value={form.religion} onChange={(e) => setForm({ ...form, religion: e.target.value })} />
+          <FieldInput label="Tribe / Ethnic group" value={form.tribe} onChange={(e) => setForm({ ...form, tribe: e.target.value })} />
+          <FieldInput label="Zip code" value={form.zipCode} onChange={(e) => setForm({ ...form, zipCode: e.target.value })} />
         </div>
         <div>
           <label className="label">Permanent address</label>
@@ -369,7 +369,7 @@ function SpfTab({ profile, onSaved }) {
         <SpfStep title="I. Application for Admission">
           <div className="grid gap-4 sm:grid-cols-2">
             <Select label="Applicant type" value={form.applicantType} onChange={set('applicantType')} options={[
-              ['', 'Select…'], ['FIRST_YEAR', 'First Year'], ['TRANSFEREE', 'Transferee'], ['RETURNEE', 'Returnee'],
+              ['', 'Select…'], ['FIRST_YEAR', 'First Year'], ['TRANSFEREE', 'Transferee'], ['RETURNEE', 'Returnee'], ['CONTINUING', 'Continuing'],
             ]} />
             <FieldInput label="LRN (Learner Reference Number)" value={form.lrn} onChange={set('lrn')} />
             <FieldInput label="Preferred course 1" value={form.preferredCourse1} onChange={set('preferredCourse1')} />

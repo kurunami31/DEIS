@@ -102,7 +102,7 @@ model StudentProfile {
   enrolledAt     DateTime @default(now())
 
   // I. Application for Admission (Student Profile Form FM-DOrSU-ODI-05)
-  applicantType     String? // FIRST_YEAR | TRANSFEREE | RETURNEE
+  applicantType     String? // FIRST_YEAR | TRANSFEREE | RETURNEE | CONTINUING
   lrn               String?
   preferredCourse1  String?
   preferredCourse2  String?

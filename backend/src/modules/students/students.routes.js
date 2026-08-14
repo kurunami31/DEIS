@@ -11,7 +11,7 @@ const router = Router();
 
 const spfSchema = z.object({
   // I. Application for Admission
-  applicantType: z.enum(['FIRST_YEAR', 'TRANSFEREE', 'RETURNEE']).optional(),
+  applicantType: z.enum(['FIRST_YEAR', 'TRANSFEREE', 'RETURNEE', 'CONTINUING']).optional(),
   lrn: z.string().trim().max(20).optional(),
   preferredCourse1: z.string().trim().max(100).optional(),
   preferredCourse2: z.string().trim().max(100).optional(),
