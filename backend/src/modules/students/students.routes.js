@@ -10,6 +10,10 @@ import { audit } from '../../lib/audit.js';
 const router = Router();
 
 const spfSchema = z.object({
+  // Core identity
+  firstName: z.string().trim().min(1).max(50).optional(),
+  lastName: z.string().trim().min(1).max(50).optional(),
+  nameSuffix: z.string().trim().max(10).optional(),
   // I. Application for Admission
   applicantType: z.enum(['FIRST_YEAR', 'TRANSFEREE', 'RETURNEE', 'CONTINUING']).optional(),
   lrn: z.string().trim().max(20).optional(),

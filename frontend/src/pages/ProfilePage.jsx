@@ -153,21 +153,40 @@ function OverviewTab({ user, profile, error }) {
 }
 
 /* --------------------------------------------------------------- Edit tab */
+function termInfo(term) {
+  if (!term) return { year: '—', semester: '—' };
+  const label = term.label ?? '';
+  const ym = label.match(/\b\d{4}\s*-\s*\d{4}\b/);
+  const year =
+    ym ? ym[0].replace(/\s+/g, '') : term.startDate ? `${new Date(term.startDate).getFullYear()}-${new Date(term.endDate).getFullYear()}` : '—';
+  const sm = label.match(/\b\d+(?:st|nd|rd|th)?\s*Sem(?:ester)?\b/i);
+  const semester = sm ? sm[0].replace(/\bSem\b/i, 'Semester') : '—';
+  return { year, semester };
+}
+
 function EditTab({ profile, onSaved }) {
   const toast = useToast();
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [activeTerm, setActiveTerm] = useState(null);
+
+  useEffect(() => {
+    request({ url: '/enrollments/active-term' }).then(setActiveTerm).catch(() => setActiveTerm(null));
+  }, []);
 
   useEffect(() => {
     if (profile) {
       setForm({
+        firstName: profile.firstName ?? '',
+        lastName: profile.lastName ?? '',
+        nameSuffix: profile.nameSuffix ?? '',
+        middleName: profile.middleName ?? '',
         personalEmail: profile.personalEmail ?? '',
         contactNumber: profile.contactNumber ?? '',
         permanentAddress: profile.permanentAddress ?? '',
         zipCode: profile.zipCode ?? '',
         religion: profile.religion ?? '',
         tribe: profile.tribe ?? '',
-        middleName: profile.middleName ?? '',
       });
     }
   }, [profile]);
@@ -179,7 +198,7 @@ function EditTab({ profile, onSaved }) {
     setSaving(true);
     try {
       const res = await request({ method: 'patch', url: '/students/me', data: form });
-      onSaved(res.student ?? profile);
+      onSaved({ ...profile, ...res.student });
       toast.success('Profile details updated.');
     } catch (err) {
       toast.error(err.message);
@@ -188,6 +207,13 @@ function EditTab({ profile, onSaved }) {
     }
   };
 
+  const { year, semester } = termInfo(activeTerm);
+  const registeredRequest = profile.enrollmentRequests?.find(
+    (r) => r.termId === activeTerm?.id && r.status === 'APPROVED',
+  );
+  const enrolled = Boolean(registeredRequest);
+  const dateRegistered = registeredRequest?.submittedAt ?? profile.enrolledAt;
+
   return (
     <section className="card card-pad max-w-2xl">
       <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-600">
@@ -195,7 +221,10 @@ function EditTab({ profile, onSaved }) {
       </h3>
       <form onSubmit={handleSave} className="mt-4 space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
+          <FieldInput label="First name" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} />
+          <FieldInput label="Last name" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} />
           <FieldInput label="Middle name" value={form.middleName} onChange={(e) => setForm({ ...form, middleName: e.target.value })} />
+          <FieldInput label="Suffix (optional)" value={form.nameSuffix} onChange={(e) => setForm({ ...form, nameSuffix: e.target.value })} />
           <FieldInput label="Personal email" type="email" value={form.personalEmail} onChange={(e) => setForm({ ...form, personalEmail: e.target.value })} />
           <FieldInput label="Contact number" value={form.contactNumber} onChange={(e) => setForm({ ...form, contactNumber: e.target.value })} />
           <FieldInput label="Religion" value={form.religion} onChange={(e) => setForm({ ...form, religion: e.target.value })} />
@@ -206,6 +235,43 @@ function EditTab({ profile, onSaved }) {
           <label className="label">Permanent address</label>
           <textarea className="input min-h-20" value={form.permanentAddress} onChange={(e) => setForm({ ...form, permanentAddress: e.target.value })} />
         </div>
+
+        <div className="border-t border-slate-100 pt-4">
+          <h4 className="text-xs font-bold uppercase tracking-wide text-slate-600">Personal details</h4>
+          <h5 className="mt-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Recent School Credentials</h5>
+          <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2.5 text-sm">
+            <Field label="ID Number" value={profile.studentNo} mono />
+            <Field label="Course" value={profile.program?.name ?? '—'} />
+            <Field label="School Year" value={year} />
+            <Field label="Semester" value={semester} />
+          </dl>
+        </div>
+
+        <div className="border-t border-slate-100 pt-4">
+          <h4 className="text-xs font-bold uppercase tracking-wide text-slate-600">Current status</h4>
+          <p className="mt-2 text-sm text-slate-600">
+            Current Academic Year and Semester: <span className="font-semibold">{year}, {semester}</span>
+          </p>
+          <div className="mt-3 grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="label">STATUS</p>
+              <div
+                className={`flex h-11 items-center justify-center rounded-lg border-2 border-black text-sm font-bold ${
+                  enrolled ? 'bg-emerald-600 text-white' : 'bg-white text-slate-800'
+                }`}
+              >
+                {enrolled ? 'ENROLLED' : 'NOT ENROLLED'}
+              </div>
+            </div>
+            <div>
+              <p className="label">DATE REGISTERED</p>
+              <div className="flex h-11 items-center justify-center rounded-lg border-2 border-black bg-white text-sm font-bold text-slate-800">
+                {formatDate(dateRegistered)}
+              </div>
+            </div>
+          </div>
+        </div>
+
         <button className="btn-primary" disabled={saving}>
           {saving ? 'Saving…' : 'Save details'}
         </button>

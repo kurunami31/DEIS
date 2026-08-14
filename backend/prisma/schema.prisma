@@ -93,6 +93,7 @@ model StudentProfile {
   studentNo      String   @unique
   firstName      String
   lastName       String
+  nameSuffix     String?
   yearLevel      Int      @default(1)
   sex            Sex
   strand         String?
