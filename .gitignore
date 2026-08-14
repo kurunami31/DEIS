@@ -41,3 +41,5 @@ uploads/
 !frontend/public/graduation-background.png
 # Google OAuth client secrets
 client_secret_*.apps.googleusercontent.com.json
+.vercel
+.env*
