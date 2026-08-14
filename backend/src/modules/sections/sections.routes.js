@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../../lib/prisma.js';
-import { asyncHandler, ok, created } from '../../lib/http.js';
+import { asyncHandler, ok, created, ForbiddenError } from '../../lib/http.js';
 import { validate } from '../../middleware/validate.js';
 import { authenticate, allowRoles } from '../../middleware/auth.js';
 import { audit } from '../../lib/audit.js';
@@ -115,6 +115,11 @@ router.get(
       },
     });
     if (!section) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Section not found' } });
+    // Roster access follows the same ownership rule as grade encoding: a
+    // faculty member may only see students/grades of the sections they teach.
+    if (req.user.role === 'FACULTY' && section.facultyId !== req.user.id) {
+      throw new ForbiddenError('Only the assigned faculty may view this roster.');
+    }
 
     const studentIds = section.items.map((item) => item.request.student.id);
     const grades = await prisma.gradeRecord.findMany({

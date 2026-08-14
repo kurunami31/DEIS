@@ -92,3 +92,16 @@ export const totpLimiter = rateLimit({
       error: { code: 'RATE_LIMITED', message: 'Too many verification attempts. Please try again in a few minutes.' },
     }),
 });
+
+// Chat hits a third-party LLM API (Groq), so abuse costs money and latency.
+// A per-IP budget prevents a single user from draining the key.
+export const chatLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: config.isTest ? 10000 : 30,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  handler: (req, res) =>
+    res.status(429).json({
+      error: { code: 'RATE_LIMITED', message: 'Too many chat requests. Please wait a moment and try again.' },
+    }),
+});

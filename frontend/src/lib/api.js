@@ -13,7 +13,14 @@ export function extractError(err) {
 export async function request({ method = 'get', url = '', data, params }) {
   let path = url;
   if (params) {
-    const qs = new URLSearchParams(params).toString();
+    // URLSearchParams turns `undefined` into the literal string "undefined", so
+    // callers passing `search: value || undefined` would make the server search
+    // for the word "undefined". Drop empty values before building the query.
+    const clean = {};
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined && value !== null) clean[key] = value;
+    }
+    const qs = new URLSearchParams(clean).toString();
     if (qs) path += `${path.includes('?') ? '&' : '?'}${qs}`;
   }
 

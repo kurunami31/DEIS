@@ -99,7 +99,11 @@ model StudentProfile {
   strand         String?
   programId      String
   campusId       String
-  activationCode String   @unique
+  // Null after successful activation (the code is consumed, single-use).
+  activationCode      String?   @unique
+  // Codes stop working after this time (null = never expires, for rows created
+  // before expiry tracking existed). Cleared on successful activation.
+  activationExpiresAt DateTime?
   enrolledAt     DateTime @default(now())
 
   // I. Application for Admission (Student Profile Form FM-DOrSU-ODI-05)

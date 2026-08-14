@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { prisma } from '../../lib/prisma.js';
-import { hashPassword, verifyPassword } from '../../lib/passwords.js';
+import { hashPassword, verifyPassword, DUMMY_PASSWORD_HASH, hashSecurityAnswer, verifySecurityAnswer } from '../../lib/passwords.js';
 import { signToken, signChallengeToken, verifyChallengeToken, signResetToken, verifyResetToken } from '../../lib/tokens.js';
 import { audit } from '../../lib/audit.js';
 import {
@@ -67,11 +67,16 @@ export async function activate(studentNo, activationCode, password, { ip, dpaVer
   });
   if (!student) throw new NotFoundError('Student number not found.');
 
+  // Already-activated accounts are rejected regardless of the code supplied,
+  // and a used code is nulled on activation so it can never be replayed.
+  if (student.user) throw new ConflictError('Account already activated. Please login instead.');
   if (student.activationCode !== activationCode) {
     recordFailedAttempt(studentNo, ip);
     throw new UnprocessableError('Activation code is incorrect.');
   }
-  if (student.user) throw new ConflictError('Account already activated. Please login instead.');
+  if (student.activationExpiresAt && student.activationExpiresAt < new Date()) {
+    throw new UnprocessableError('This activation code has expired. Please contact the Registrar for a new code.');
+  }
   if (isLocked(studentNo, ip)) {
     throw new UnauthorizedError('Too many failed attempts. Account is locked temporarily.');
   }
@@ -90,7 +95,11 @@ export async function activate(studentNo, activationCode, password, { ip, dpaVer
         dpaConsentVersion: CURRENT_DPA_VERSION,
       },
     });
-    await tx.studentProfile.update({ where: { id: student.id }, data: { userId: created.id } });
+    // Consume the code: single-use, and gone even if the record is re-created.
+    await tx.studentProfile.update({
+      where: { id: student.id },
+      data: { userId: created.id, activationCode: null, activationExpiresAt: null },
+    });
     await tx.userPasswordHistory.create({
       data: { userId: created.id, passwordHash: created.passwordHash },
     });
@@ -130,7 +139,9 @@ export async function login(identifier, password, { ip } = {}) {
     include: { student: true },
   });
 
-  const valid = user && (await verifyPassword(password, user.passwordHash));
+  // Always run a bcrypt compare so unknown identifiers take the same time as
+  // known ones (a fast path would reveal which accounts exist).
+  const valid = user ? await verifyPassword(password, user.passwordHash) : await verifyPassword(password, DUMMY_PASSWORD_HASH);
   if (!user || !valid) {
     const { remaining } = recordFailedAttempt(identifier, ip);
     await audit({
@@ -300,18 +311,6 @@ export const SECURITY_QUESTIONS = [
 
 export const REQUIRED_SECURITY_QUESTIONS = 3;
 
-function hashAnswer(answer) {
-  const salt = crypto.randomBytes(16).toString('hex');
-  const hash = crypto.createHash('sha256').update(`${salt}:${answer.trim().toLowerCase()}`).digest('hex');
-  return { salt, hash };
-}
-
-function answerMatches(stored, answer) {
-  if (!stored) return false;
-  const probe = crypto.createHash('sha256').update(`${stored.salt}:${answer.trim().toLowerCase()}`).digest('hex');
-  return crypto.timingSafeEqual(Buffer.from(stored.hash), Buffer.from(probe));
-}
-
 /** Sets (or replaces) the user's security questions used for recovery. */
 export async function setSecurityQuestions(userId, answers) {
   if (!Array.isArray(answers) || answers.length < REQUIRED_SECURITY_QUESTIONS) {
@@ -328,7 +327,7 @@ export async function setSecurityQuestions(userId, answers) {
       throw new UnprocessableError('Security answers must be at least 2 characters.');
     }
     seen.add(item.questionId);
-    mapped.push({ questionId: definition.id, questionLabel: definition.label, ...hashAnswer(item.answer) });
+    mapped.push({ questionId: definition.id, questionLabel: definition.label, hash: await hashSecurityAnswer(item.answer) });
   }
 
   await prisma.user.update({
@@ -388,7 +387,7 @@ export async function finishPasswordReset(resetToken, answers, newPassword) {
   let matched = 0;
   for (const answer of answers) {
     const record = byId.get(answer?.questionId);
-    if (record && answerMatches(record, answer?.answer)) matched += 1;
+    if (record && (await verifySecurityAnswer(record, answer?.answer))) matched += 1;
   }
   if (matched < Math.min(REQUIRED_SECURITY_QUESTIONS, stored.length)) {
     throw new UnauthorizedError('The security answers are incorrect.');

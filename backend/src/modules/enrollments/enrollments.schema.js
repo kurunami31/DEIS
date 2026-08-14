@@ -10,9 +10,11 @@ export const reviewSchema = z.object({
   reviewNotes: z.string().max(500).optional(),
 });
 
+// Payment stub: the reference and amount are what the cashier verifies, so
+// both are required — a student cannot mark a request paid with nothing.
 export const paymentSchema = z.object({
-  amount: z.number().positive('Amount must be positive').optional(),
-  reference: z.string().trim().max(64).optional(),
+  amount: z.number().positive('Amount must be positive'),
+  reference: z.string().trim().min(3, 'Payment reference is required').max(64),
 });
 
 export const policySchema = z.object({

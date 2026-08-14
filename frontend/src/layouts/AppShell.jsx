@@ -193,9 +193,9 @@ export default function AppShell() {
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-100">
+    <div className="flex h-screen overflow-hidden bg-slate-100 print:bg-white">
       {/* Desktop sidebar */}
-      <div className="hidden md:block">{sidebar}</div>
+      <div className="hidden md:block print:hidden">{sidebar}</div>
 
       {/* Mobile sidebar */}
       {mobileOpen && (
@@ -251,7 +251,7 @@ export default function AppShell() {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 md:px-6">
+        <header className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 md:px-6 print:hidden">
           <button
             className="rounded-md p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
             onClick={() => (window.innerWidth < 768 ? setMobileOpen(true) : setCollapsed((v) => !v))}
@@ -345,7 +345,7 @@ export default function AppShell() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 print:block print:overflow-visible print:p-0">
           <Outlet />
         </main>
       </div>
@@ -362,6 +362,7 @@ const TITLES = {
   '/requests': 'My Enrollment Requests',
   '/grades': 'My Grades',
   '/clearance': 'Clearance',
+  '/clearance/print': 'Certificate of Clearance',
   '/clearance-review': 'Clearance Review',
   '/calendar': 'Calendar of Activities',
   '/my-sections': 'My Sections',
@@ -380,5 +381,6 @@ function pageTitle(path) {
   const match = TITLES[path];
   if (match) return match;
   if (path.startsWith('/sections/') && path.endsWith('/grades')) return 'Grade Encoding';
+  if (path.startsWith('/enrollments/') && path.endsWith('/form')) return 'Enrollment Form';
   return 'DEIS';
 }

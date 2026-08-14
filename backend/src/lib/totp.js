@@ -1,5 +1,8 @@
-// Dependency-free TOTP (RFC 6238) implementation using node:crypto.
+// Dependency-free TOTP (RFC 6238) implementation using node:crypto. Recovery
+// codes are stored as slow bcrypt hashes so a leaked database cannot be
+// brute-forced offline (the old format was unsalted sha256).
 import crypto from 'node:crypto';
+import bcrypt from 'bcryptjs';
 
 const STEP_SECONDS = 30;
 const DIGITS = 6;
@@ -81,17 +84,39 @@ export function generateRecoveryCodes(count = 8) {
   return codes;
 }
 
-export function hashRecoveryCode(code) {
+const RECOVERY_BCRYPT_ROUNDS = 10;
+
+function legacyRecoveryHash(code) {
   return crypto.createHash('sha256').update(code).digest('hex');
+}
+
+function isBcryptHash(value) {
+  return typeof value === 'string' && value.startsWith('$2');
+}
+
+export function hashRecoveryCode(code) {
+  return bcrypt.hashSync(code.trim(), RECOVERY_BCRYPT_ROUNDS);
 }
 
 export function verifyRecoveryCode(hashedCodes, code) {
   if (!Array.isArray(hashedCodes) || typeof code !== 'string') return false;
-  const probe = hashRecoveryCode(code.trim());
-  return hashedCodes.includes(probe);
+  const probe = code.trim();
+  const legacy = legacyRecoveryHash(probe);
+  for (const stored of hashedCodes) {
+    if (isBcryptHash(stored)) {
+      if (bcrypt.compareSync(probe, stored)) return true;
+    } else if (stored === legacy) {
+      return true; // legacy unsalted sha256 rows
+    }
+  }
+  return false;
 }
 
 export function stripRecoveryCode(hashedCodes, code) {
-  const probe = hashRecoveryCode(code.trim());
-  return hashedCodes.filter((h) => h !== probe);
+  const probe = code.trim();
+  const legacy = legacyRecoveryHash(probe);
+  return hashedCodes.filter((stored) => {
+    if (isBcryptHash(stored)) return !bcrypt.compareSync(probe, stored);
+    return stored !== legacy;
+  });
 }

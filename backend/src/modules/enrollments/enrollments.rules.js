@@ -144,6 +144,21 @@ export async function evaluateEnrollmentRules({
     }
   }
 
+  // 1b. Program alignment — a student may only take subjects of their own
+  //     program. Retakers of previously failed subjects are exempt (the failed
+  //     subject belongs to their program by definition).
+  for (const section of sections) {
+    const isRetake = backlogById.has(section.subjectId);
+    if (isRetake) continue;
+    if (section.subject.programId !== student.programId) {
+      issues.push({
+        sectionId: section.id,
+        code: 'CROSS_PROGRAM',
+        message: `${section.subject.code} belongs to another program. See the evaluator if you are a cross-enrollee.`,
+      });
+    }
+  }
+
   // 2. Backlog retake rule — a failed subject offered this term must be taken.
   if (boolOf(policy.ENFORCE_BACKLOG_RETAKE)) {
     for (const backlog of backlogs) {

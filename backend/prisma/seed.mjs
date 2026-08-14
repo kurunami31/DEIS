@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { demoPassword } from '../src/lib/passwords.js';
+import { CLEARANCE_TEMPLATES } from './clearance-templates.mjs';
 
 const prisma = new PrismaClient();
 
@@ -373,8 +374,10 @@ async function main() {
         programId: programRecord.program.id,
         campusId: campusRecords[programRecord.def.campus].id,
         // Deterministic 6-digit activation code. In production this is
-        // delivered privately; the demo returns it on-screen.
+        // delivered privately; the demo returns it on-screen. Codes stay valid
+        // for a year from seeding so the demo never hits expiry.
         activationCode: `${pad(i + 1, 3)}${pad(i * 7 + 20, 3)}`,
+        activationExpiresAt: new Date(Date.now() + 365 * 86400000),
       },
     });
     studentRecords.push({ student, fullName: FULL_NAMES[i], yearLevel, program: programRecord });
@@ -482,24 +485,14 @@ async function main() {
 
   /* ----------------------------- Clearance -------------------------------- */
   const clearanceTemplates = [];
-  const clearanceDefs = [
-    { code: 'LIB', label: 'University Library', category: 'LIBRARY' },
-    { code: 'FIN', label: 'Finance & Accounting Office', category: 'FINANCE', ownerRole: 'ACCOUNTING' },
-    { code: 'DEP', label: 'Department / College', category: 'DEPARTMENT' },
-    { code: 'GUID', label: 'Guidance Office', category: 'GUIDANCE', ownerRole: 'OSCD' },
-    { code: 'REG', label: 'Registrar', category: 'REGISTRAR' },
-    { code: 'ADM', label: 'Office of Admission', category: 'ADMISSION', ownerRole: 'ADMISSION' },
-    { code: 'OSA', label: 'Office of Student Affairs', category: 'STUDENT_AFFAIRS', ownerRole: 'OSA' },
-    { code: 'HEALTH', label: 'Office of Health Services', category: 'HEALTH', ownerRole: 'OHS' },
-    { code: 'CASH', label: 'Cashiering Section', category: 'CASHIER', ownerRole: 'CASHIERING' },
-    { code: 'SFA', label: 'Financial Aids & Scholarship Grants', category: 'SCHOLARSHIP', ownerRole: 'FAASG' },
-  ];
-  for (const def of clearanceDefs) {
+  for (const def of CLEARANCE_TEMPLATES) {
     clearanceTemplates.push(
       await prisma.clearanceTemplate.upsert({
         where: { code: def.code },
         create: def,
-        update: {},
+        // Backfill label/category/ownerRole so a re-seed heals templates that
+        // were created before office roles existed (ownerRole was null).
+        update: { label: def.label, category: def.category, ownerRole: def.ownerRole ?? null },
       }),
     );
   }

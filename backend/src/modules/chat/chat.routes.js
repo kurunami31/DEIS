@@ -5,6 +5,7 @@ import { config } from '../../config.js';
 import { ok, asyncHandler } from '../../lib/http.js';
 import { validate } from '../../middleware/validate.js';
 import { authenticate } from '../../middleware/auth.js';
+import { chatLimiter } from '../../lib/rate-limit.js';
 import { localRespond } from '../../lib/chatResponder.js';
 
 const router = Router();
@@ -58,6 +59,7 @@ function buildContext(user, role) {
 
 router.post(
   '/',
+  chatLimiter,
   authenticate,
   validate(z.object({ message: z.string().trim().min(1).max(1000) })),
   asyncHandler(async (req, res) => {

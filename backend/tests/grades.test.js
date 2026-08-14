@@ -106,6 +106,89 @@ describe('grades', () => {
     expect(rows.every((r) => r.status === 'FINALIZED')).toBe(true);
   });
 
+  it('blocks a faculty member from viewing a roster they do not teach', async () => {
+    const althea = await prisma.user.findUnique({ where: { email: 'althea.soriano@dorsu.edu.ph' } });
+    const otherFaculty = await prisma.user.findFirst({ where: { role: 'FACULTY', id: { not: althea.id } } });
+    const activeTerm = await prisma.term.findFirst({ where: { isActive: true } });
+    const subject = await prisma.subject.findFirst();
+    const section = await prisma.section.create({
+      data: {
+        code: `TEST-ROSTER-${Date.now()}`,
+        subjectId: subject.id,
+        termId: activeTerm.id,
+        facultyId: otherFaculty.id,
+        schedule: 'MW 07:00-10:00',
+        room: 'Test Room',
+        capacity: 40,
+      },
+    });
+    try {
+      const res = await api.get(`/api/sections/${section.id}/roster`).set(authHeaders(await facultyToken()));
+      expect(res.status).toBe(403);
+    } finally {
+      await prisma.section.deleteMany({ where: { id: section.id } });
+    }
+  });
+
+  it('locks grade encoding after finalization until the registrar reopens', async () => {
+    const facultyUser = await prisma.user.findUnique({ where: { email: 'althea.soriano@dorsu.edu.ph' } });
+    const registrar = await prisma.user.findFirst({ where: { role: 'REGISTRAR' } });
+    const activeTerm = await prisma.term.findFirst({ where: { isActive: true } });
+    const subject = await prisma.subject.findFirst();
+    const section = await prisma.section.create({
+      data: {
+        code: `TEST-GRADE-${Date.now()}`,
+        subjectId: subject.id,
+        termId: activeTerm.id,
+        facultyId: facultyUser.id,
+        schedule: 'MW 07:00-10:00',
+        room: 'Test Room',
+        capacity: 40,
+      },
+    });
+    // Attach the existing approved test-student request to this section so the
+    // student is on the roster (one request per student/term is enforced).
+    const existingRequest = await prisma.enrollmentRequest.findFirst({
+      where: { studentId, termId: activeTerm.id, status: 'APPROVED' },
+    });
+    if (!existingRequest) {
+      await prisma.section.deleteMany({ where: { id: section.id } });
+      return;
+    }
+    await prisma.enrollmentItem.create({ data: { requestId: existingRequest.id, sectionId: section.id } });
+
+    const records = [{ studentId, prelim: 2.5, midterm: 2.4, final: 2.5 }];
+    try {
+      const encoded = await api.put(`/api/grades/section/${section.id}/records`).set(authHeaders(await facultyToken())).send({ records });
+      expect(encoded.status).toBe(200);
+
+      const finalized = await api.post(`/api/grades/section/${section.id}/finalize`).set(authHeaders(await facultyToken()));
+      expect(finalized.status).toBe(200);
+      expect(finalized.body.data.finalized).toBe(1);
+
+      // Finalized grades cannot be silently rewritten by the faculty member.
+      const blocked = await api
+        .put(`/api/grades/section/${section.id}/records`)
+        .set(authHeaders(await facultyToken()))
+        .send({ records: [{ studentId, prelim: 1.0, midterm: 1.0, final: 1.0 }] });
+      expect(blocked.status).toBe(422);
+      expect(blocked.body.error.message).toContain('finalized');
+
+      // The registrar reopens the section; encoding works again.
+      const reopened = await api.post(`/api/grades/section/${section.id}/reopen`).set(authHeaders(await registrarToken()));
+      expect(reopened.status).toBe(200);
+      expect(reopened.body.data.reopened).toBe(1);
+
+      const allowed = await api.put(`/api/grades/section/${section.id}/records`).set(authHeaders(await facultyToken())).send({ records });
+      expect(allowed.status).toBe(200);
+      expect(registrar).toBeTruthy();
+    } finally {
+      await prisma.gradeRecord.deleteMany({ where: { sectionId: section.id } });
+      await prisma.enrollmentItem.deleteMany({ where: { sectionId: section.id } });
+      await prisma.section.deleteMany({ where: { id: section.id } });
+    }
+  });
+
   it('surfaces finalized grades to the registrar analytics', async () => {
     const res = await api.get('/api/analytics/grades').set(authHeaders(await registrarToken()));
     expect(res.status).toBe(200);

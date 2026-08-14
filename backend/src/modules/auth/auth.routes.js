@@ -36,6 +36,10 @@ router.post(
   validate(verifyStudentSchema),
   asyncHandler(async (req, res) => {
     const result = await authService.verifyStudent(req.body.studentNo);
+    // Never hand out the activation code to anyone who merely knows a student
+    // number outside the demo. In production the code is delivered privately
+    // (registrar / email / SMS); here it would enable account takeover.
+    if (!config.exposeActivationCodes) delete result.activationCode;
     return ok(res, result);
   }),
 );
@@ -169,6 +173,15 @@ router.post(
   '/logout',
   authenticate,
   asyncHandler(async (req, res) => {
+    // Bump tokenVersion so the session token is dead even if it was stolen
+    // (clearing the cookie alone leaves a bearer token valid until expiry).
+    // Side effect: single-session semantics — logging out on one device signs
+    // out everywhere, which suits a shared campus portal.
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { tokenVersion: { increment: 1 } },
+    });
+    await audit({ actorId: req.user.id, action: 'USER_LOGOUT', entityType: 'user', entityId: req.user.id });
     res.clearCookie(SESSION_COOKIE, clearSessionCookieOptions());
     return ok(res, { ok: true });
   }),

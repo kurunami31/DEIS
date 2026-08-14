@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ShieldCheck, Clock3 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ShieldCheck, Clock3, Printer } from 'lucide-react';
 import { request } from '../../lib/api.js';
 import { useToast } from '../../context/ToastContext.jsx';
 
@@ -19,6 +20,7 @@ function statusMeta(status) {
 
 export default function ClearancePage() {
   const toast = useToast();
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -50,6 +52,9 @@ export default function ClearancePage() {
         <span className={`badge ${clearance.status === 'CLEARED' ? 'badge-green' : 'badge-amber'}`}>
           {clearance.status === 'CLEARED' ? 'CLEARED' : 'IN PROGRESS'}
         </span>
+        <button className="btn-secondary !px-3 !py-1.5 text-xs" onClick={() => navigate('/clearance/print')}>
+          <Printer size={13} /> Print clearance
+        </button>
       </div>
 
       {subjects.length > 0 && (
@@ -83,7 +88,7 @@ export default function ClearancePage() {
                 </div>
                 <span className={`badge ${meta.cls}`}>{meta.label}</span>
               </div>
-              {signoff?.cleared ? (
+              {signoff?.status === 'CLEARED' ? (
                 <p className="mt-2 flex items-center gap-1 text-xs text-slate-400">
                   <ShieldCheck size={14} className="text-green-600" /> Reviewed by {signoff.reviewedBy?.fullName ?? 'staff'}
                 </p>

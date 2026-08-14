@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma.js';
 import { ConflictError, NotFoundError, UnprocessableError } from '../../lib/http.js';
 import { PASSING_GRADE, evaluateEnrollmentRules, loadPolicy, boolOf } from './enrollments.rules.js';
+import { schedulesConflict } from '../../lib/schedule.js';
 
 const STATUS_HOLDING_SEATS = ['PENDING', 'APPROVED'];
 
@@ -78,12 +79,14 @@ export async function validateEnrollment(studentId, termId, sectionIds) {
 
   for (const section of sections) {
     for (const other of sections) {
-      if (other.id === section.id || other.schedule !== section.schedule) continue;
-      issues.push({
-        sectionId: section.id,
-        code: 'SCHEDULE_CONFLICT',
-        message: `${section.code} conflicts with ${other.code} (${section.schedule})`,
-      });
+      if (other.id === section.id) continue;
+      if (schedulesConflict(section.schedule, other.schedule)) {
+        issues.push({
+          sectionId: section.id,
+          code: 'SCHEDULE_CONFLICT',
+          message: `${section.code} conflicts with ${other.code} (${section.schedule})`,
+        });
+      }
     }
   }
 

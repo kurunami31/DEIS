@@ -27,6 +27,8 @@ import CatalogPage from './pages/admin/CatalogPage.jsx';
 import PolicyPage from './pages/admin/PolicyPage.jsx';
 import AuditPage from './pages/admin/AuditPage.jsx';
 import ClearancePage from './pages/student/ClearancePage.jsx';
+import ClearancePrintPage from './pages/student/ClearancePrintPage.jsx';
+import EnrollmentFormPrintPage from './pages/student/EnrollmentFormPrintPage.jsx';
 import ClearanceReviewPage from './pages/registrar/ClearanceReviewPage.jsx';
 import CalendarPage from './pages/CalendarPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
@@ -121,6 +123,8 @@ export default function App() {
                 <Route path="requests" element={<RequireAuth roles={['STUDENT']}><MyRequestsPage /></RequireAuth>} />
                 <Route path="grades" element={<RequireAuth roles={['STUDENT']}><MyGradesPage /></RequireAuth>} />
                 <Route path="clearance" element={<RequireAuth roles={['STUDENT']}><ClearancePage /></RequireAuth>} />
+                <Route path="clearance/print" element={<RequireAuth roles={['STUDENT']}><ClearancePrintPage /></RequireAuth>} />
+                <Route path="enrollments/:id/form" element={<RequireAuth roles={['STUDENT']}><EnrollmentFormPrintPage /></RequireAuth>} />
                 <Route path="clearance-review" element={<RequireAuth roles={['REGISTRAR', 'ADMIN', 'ACCOUNTING', 'ADMISSION', 'OSA', 'OHS', 'CASHIERING', 'OSCD', 'FAASG']}><ClearanceReviewPage /></RequireAuth>} />
                 <Route path="calendar" element={<RequireAuth><CalendarPage /></RequireAuth>} />
 

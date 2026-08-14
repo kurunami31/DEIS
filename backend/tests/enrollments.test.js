@@ -91,6 +91,87 @@ describe('enrollments', () => {
     expect(res.body.error.details.some((d) => d.code === 'YEAR_LEVEL_MISMATCH')).toBe(true);
   });
 
+  it('rejects sections from a different program', async () => {
+    const student = await prisma.studentProfile.findUnique({ where: { id: studentId } });
+    const foreign = await prisma.section.findFirst({
+      where: {
+        termId: activeTermId,
+        subject: { programId: { not: student.programId }, yearLevel: student.yearLevel },
+      },
+    });
+    if (!foreign) return;
+    const res = await api
+      .post('/api/enrollments/submit')
+      .set(authHeaders((await loginAsTestStudent()).body.data.token))
+      .send({ sections: [foreign.id] });
+    expect(res.status).toBe(422);
+    expect(res.body.error.details.some((d) => d.code === 'CROSS_PROGRAM')).toBe(true);
+  });
+
+  it('rejects a submission once a section has reached capacity', async () => {
+    const program = await prisma.program.findUnique({ where: { code: 'BSIT' } });
+    const campus = await prisma.campus.findUnique({ where: { code: 'MATI' } });
+    const subject = await prisma.subject.findFirst();
+    const faculty = await prisma.user.findFirst({ where: { role: 'FACULTY' } });
+    const registrar = await prisma.user.findFirst({ where: { role: 'REGISTRAR' } });
+
+    const section = await prisma.section.create({
+      data: {
+        code: `TEST-FULL-${Date.now()}`,
+        subjectId: subject.id,
+        termId: activeTermId,
+        facultyId: faculty.id,
+        schedule: 'MW 07:00-10:00',
+        room: 'Test Room',
+        capacity: 2,
+      },
+    });
+
+    // Fill every seat with approved enrollments from throwaway students.
+    const fillerIds = [];
+    for (let i = 0; i < 2; i += 1) {
+      const student = await prisma.studentProfile.create({
+        data: {
+          studentNo: `2026-99${i}${i}0`,
+          firstName: 'Filler',
+          lastName: `Student${i}`,
+          sex: 'MALE',
+          yearLevel: 1,
+          strand: 'STEM',
+          programId: program.id,
+          campusId: campus.id,
+          activationCode: `7000${i}1`,
+        },
+      });
+      fillerIds.push(student.id);
+      await prisma.enrollmentRequest.create({
+        data: {
+          studentId: student.id,
+          termId: activeTermId,
+          status: 'APPROVED',
+          submittedAt: new Date(),
+          reviewedAt: new Date(),
+          reviewedById: registrar.id,
+          items: { create: [{ sectionId: section.id }] },
+        },
+      });
+    }
+
+    try {
+      const res = await api
+        .post('/api/enrollments/submit')
+        .set(authHeaders((await loginAsTestStudent()).body.data.token))
+        .send({ sections: [section.id] });
+      expect(res.status).toBe(422);
+      expect(res.body.error.details.some((d) => d.code === 'SECTION_FULL')).toBe(true);
+    } finally {
+      await prisma.enrollmentItem.deleteMany({ where: { sectionId: section.id } });
+      await prisma.enrollmentRequest.deleteMany({ where: { studentId: { in: fillerIds } } });
+      await prisma.studentProfile.deleteMany({ where: { id: { in: fillerIds } } });
+      await prisma.section.deleteMany({ where: { id: section.id } });
+    }
+  });
+
   it('prevents a second active request for the same term', async () => {
     const section = await eligibleSection();
     const token = (await loginAsTestStudent()).body.data.token;
@@ -145,6 +226,31 @@ describe('enrollments', () => {
     expect(res.status).toBe(200);
     expect(res.body.data.status).toBe('APPROVED');
     expect(res.body.data.reviewNotes).toBe('All documents verified');
+
+    await prisma.enrollmentItem.deleteMany({ where: { request: { studentId } } });
+    await prisma.enrollmentRequest.deleteMany({ where: { studentId } });
+  });
+
+  it('requires an amount and reference to record a payment', async () => {
+    // Self-contained: clear any request the earlier payment test may have left
+    // for the shared test student so this submit always starts fresh.
+    await prisma.enrollmentItem.deleteMany({ where: { request: { studentId } } });
+    await prisma.enrollmentRequest.deleteMany({ where: { studentId } });
+
+    const section = await eligibleSection();
+    const token = (await loginAsTestStudent()).body.data.token;
+    const created = await api.post('/api/enrollments/submit').set(authHeaders(token)).send({ sections: [section.id] });
+    expect(created.status).toBe(201);
+    const requestId = created.body.data.id;
+
+    const empty = await api.post(`/api/enrollments/${requestId}/payment`).set(authHeaders(token)).send({});
+    expect(empty.status).toBe(400);
+    expect(empty.body.error.details.some((d) => d.field === 'amount')).toBe(true);
+    expect(empty.body.error.details.some((d) => d.field === 'reference')).toBe(true);
+
+    const partial = await api.post(`/api/enrollments/${requestId}/payment`).set(authHeaders(token)).send({ amount: 2500 });
+    expect(partial.status).toBe(400);
+    expect(partial.body.error.details.some((d) => d.field === 'reference')).toBe(true);
 
     await prisma.enrollmentItem.deleteMany({ where: { request: { studentId } } });
     await prisma.enrollmentRequest.deleteMany({ where: { studentId } });

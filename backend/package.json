@@ -13,6 +13,7 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:seed": "node prisma/seed.mjs",
+    "db:backfill-clearance": "node scripts/backfill-clearance-templates.mjs",
     "db:reset": "prisma db push --force-reset && node prisma/seed.mjs",
     "test": "vitest run",
     "test:watch": "vitest"

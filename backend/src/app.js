@@ -99,7 +99,9 @@ export function createApp() {
     });
   }
 
-  app.use(express.json({ limit: '256kb' }));
+  // 2 MB so the SPF 2x2 photo (base64, up to 1 MB raw) fits; 256 KB silently
+  // rejected every photo over ~190 KB with a confusing BAD_JSON error.
+  app.use(express.json({ limit: '2mb' }));
   app.use(express.urlencoded({ extended: false }));
 
   app.get('/api/health', (req, res) => {

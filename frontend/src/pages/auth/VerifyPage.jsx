@@ -87,13 +87,20 @@ export default function VerifyPage() {
                 </p>
               ) : (
                 <>
-                  <div className="mt-4 rounded-lg border border-dashed border-emerald-300 bg-white p-3 text-center">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Activation code</p>
-                    <p className="mt-1 font-mono text-2xl font-bold tracking-[0.35em] text-primary-700">{result.activationCode}</p>
-                    <p className="mt-1 text-[11px] text-slate-400">
-                      Demo environment: the code is displayed here; in production it is delivered privately.
+                  {result.activationCode ? (
+                    <div className="mt-4 rounded-lg border border-dashed border-emerald-300 bg-white p-3 text-center">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Activation code</p>
+                      <p className="mt-1 font-mono text-2xl font-bold tracking-[0.35em] text-primary-700">{result.activationCode}</p>
+                      <p className="mt-1 text-[11px] text-slate-400">
+                        Demo environment: the code is displayed here; in production it is delivered privately.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="mt-4 rounded-lg border border-dashed border-primary-200 bg-primary-50 p-3 text-center text-xs text-slate-600">
+                      Your activation code was issued by the Registrar. If you don't have it, contact the
+                      Registrar's office — and never share it with anyone.
                     </p>
-                  </div>
+                  )}
                   <button className="btn-primary mt-4 w-full" onClick={() => navigate('/activate', { state: { studentNo: result.studentNo, activationCode: result.activationCode } })}>
                     <ShieldCheck size={16} />
                     Create login credentials
@@ -108,10 +115,10 @@ export default function VerifyPage() {
           <ArrowLeft size={15} />
           Back to sign in
         </Link>
-        {result && !result.alreadyActivated && (
+        {result && !result.alreadyActivated && result.activationCode && (
           <p className="mt-2 text-center text-xs text-primary-200">You may return here anytime to view the code again.</p>
         )}
-        {result && (
+        {result && !result.alreadyActivated && (
           <button className="mt-2 w-full text-center text-xs text-primary-200 hover:text-white" onClick={() => toast.info('Keep your student number and code handy.')}>
             Tip: activation codes are single-use.
           </button>

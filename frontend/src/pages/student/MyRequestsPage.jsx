@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Banknote, FileText, Undo2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Banknote, FileText, Printer, Undo2 } from 'lucide-react';
 import { request } from '../../lib/api.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import { formatDateTime } from '../../lib/utils.js';
@@ -15,6 +16,7 @@ const STATUS_META = {
 
 export default function MyRequestsPage() {
   const toast = useToast();
+  const navigate = useNavigate();
   const [requests, setRequests] = useState(null);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(null);
@@ -90,6 +92,11 @@ export default function MyRequestsPage() {
                     <Undo2 size={13} /> Withdraw
                   </button>
                 )}
+                {req.status === 'APPROVED' && (
+                  <button className="btn-secondary !px-3 !py-1.5 text-xs" onClick={() => navigate(`/enrollments/${req.id}/form`)}>
+                    <Printer size={13} /> Print form
+                  </button>
+                )}
               </div>
             </div>
 
@@ -136,7 +143,7 @@ export default function MyRequestsPage() {
                       <button className="btn-secondary !px-3 !py-2 text-xs" onClick={() => setPaying(null)}>Cancel</button>
                       <button
                         className="btn-primary !px-3 !py-2 text-xs"
-                        disabled={!paying.amount && !paying.reference}
+                        disabled={!paying.amount || !paying.reference}
                         onClick={() => handlePayment(req.id)}
                       >
                         <Banknote size={13} /> Save payment

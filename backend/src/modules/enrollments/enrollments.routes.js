@@ -1,7 +1,8 @@
 ﻿import { Router } from 'express';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
-import { asyncHandler, ok, created } from '../../lib/http.js';
+import { asyncHandler, ok, created, NotFoundError, ConflictError } from '../../lib/http.js';
 import { validate } from '../../middleware/validate.js';
 import { authenticate, allowRoles, requireStudent } from '../../middleware/auth.js';
 import { audit } from '../../lib/audit.js';
@@ -141,14 +142,34 @@ router.post(
       return res.status(422).json({ error: { code: 'ENROLLMENT_RULES', message: 'Enrollment rules not satisfied', details: issues } });
     }
 
+    // Seat assignment must be atomic: validateEnrollment above is a read-only
+    // pre-check, and between it and this insert another student could claim the
+    // last seat. Locking the selected section rows (FOR UPDATE) serializes
+    // concurrent submissions touching the same sections, and the re-count below
+    // then sees every committed enrollment item — so a section can never be
+    // oversold.
+    const uniqueSectionIds = [...new Set(req.body.sections)];
     const request = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Section" WHERE id IN (${Prisma.join(uniqueSectionIds)}) FOR UPDATE`;
+      for (const sectionId of uniqueSectionIds) {
+        const [held, section] = await Promise.all([
+          tx.enrollmentItem.count({
+            where: { sectionId, request: { status: { in: ['PENDING', 'APPROVED'] } } },
+          }),
+          tx.section.findUnique({ where: { id: sectionId }, select: { capacity: true } }),
+        ]);
+        if (!section) throw new NotFoundError('Section no longer exists.');
+        if (held >= section.capacity) {
+          throw new ConflictError('One of your selected sections is now full. Please refresh and try again.');
+        }
+      }
       const created = await tx.enrollmentRequest.create({
         data: {
           studentId: student.id,
           termId: term.id,
           status: 'PENDING',
           studentNote: req.body.studentNote,
-          items: { create: req.body.sections.map((sectionId) => ({ sectionId })) },
+          items: { create: uniqueSectionIds.map((sectionId) => ({ sectionId })) },
         },
         include: buildRequestInclude(),
       });

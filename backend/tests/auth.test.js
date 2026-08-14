@@ -1,7 +1,9 @@
 import { beforeAll, afterAll, describe, expect, it, vi } from 'vitest';
 import { api, loginAs, loginAsTestStudent, registrarToken, createUnactivatedStudent, activateTestStudent, cleanupTestData, authHeaders, TEST_STUDENT_NO, TEST_STUDENT_PASSWORD } from './helpers.js';
+import { prisma } from '../src/lib/prisma.js';
 import { demoPassword } from '../src/lib/passwords.js';
 import { CURRENT_DPA_VERSION } from '../src/lib/dpa.js';
+import { config } from '../src/config.js';
 
 vi.mock('../src/lib/google.js', () => ({
   buildAuthorizationUrl: vi.fn(() => 'https://accounts.google.com/o/oauth2/v2/auth?test=1'),
@@ -34,15 +36,61 @@ describe('auth', () => {
     expect(res.body.data.alreadyActivated).toBe(false);
   });
 
+  it('never returns the activation code when disclosure is disabled (production)', async () => {
+    const original = config.exposeActivationCodes;
+    config.exposeActivationCodes = false;
+    try {
+      const res = await api.post('/api/auth/verify-student').send({ studentNo: TEST_STUDENT_NO });
+      expect(res.status).toBe(200);
+      expect(res.body.data.activationCode).toBeUndefined();
+      expect(res.body.data.studentNo).toBe(TEST_STUDENT_NO);
+    } finally {
+      config.exposeActivationCodes = original;
+    }
+  });
+
   it('rejects an incorrect activation code', async () => {
     const res = await api.post('/api/auth/activate').send({ studentNo: TEST_STUDENT_NO, activationCode: '000000', password: 'DorsuStrong@123', dpaVersion: 1 });
     expect(res.status).toBe(422);
   });
 
-  it('activates the student and issues a token', async () => {
+  it('rejects an expired activation code', async () => {
+    const program = await prisma.program.findUnique({ where: { code: 'BSIT' } });
+    const campus = await prisma.campus.findUnique({ where: { code: 'MATI' } });
+    const expired = await prisma.studentProfile.create({
+      data: {
+        studentNo: '2025-9998',
+        firstName: 'Expired',
+        lastName: 'Student',
+        sex: 'FEMALE',
+        yearLevel: 1,
+        strand: 'STEM',
+        programId: program.id,
+        campusId: campus.id,
+        activationCode: '555111',
+        activationExpiresAt: new Date(Date.now() - 86400000),
+      },
+    });
+    try {
+      const res = await api
+        .post('/api/auth/activate')
+        .send({ studentNo: '2025-9998', activationCode: '555111', password: 'DorsuStrong@123', dpaVersion: 1 });
+      expect(res.status).toBe(422);
+      expect(res.body.error.message).toContain('expired');
+    } finally {
+      await prisma.studentProfile.deleteMany({ where: { id: expired.id } });
+    }
+  });
+
+  it('activates the student, issues a token, and consumes the code', async () => {
     const res = await api.post('/api/auth/activate').send({ studentNo: TEST_STUDENT_NO, activationCode: '987654', password: TEST_STUDENT_PASSWORD, dpaVersion: 1 });
     expect(res.status).toBe(201);
     expect(res.body.data.token).toBeTruthy();
+
+    // Single-use: the code is nulled on activation and can never be replayed.
+    const row = await prisma.studentProfile.findUnique({ where: { studentNo: TEST_STUDENT_NO } });
+    expect(row.activationCode).toBeNull();
+    expect(row.activationExpiresAt).toBeNull();
   });
 
   it('blocks activation of an already-activated student', async () => {
@@ -104,6 +152,18 @@ describe('auth', () => {
       .post('/api/auth/change-password')
       .set(authHeaders(relogin.body.data.token))
       .send({ currentPassword: 'DorsuStrong@456', newPassword: TEST_STUDENT_PASSWORD });
+  });
+
+  it('revokes the session token on logout', async () => {
+    const token = (await loginAs('registrar@dorsu.edu.ph')).body.data.token;
+    const me = await api.get('/api/auth/me').set(authHeaders(token));
+    expect(me.status).toBe(200);
+
+    const logout = await api.post('/api/auth/logout').set(authHeaders(token));
+    expect(logout.status).toBe(200);
+
+    const after = await api.get('/api/auth/me').set(authHeaders(token));
+    expect(after.status).toBe(401);
   });
 });
 

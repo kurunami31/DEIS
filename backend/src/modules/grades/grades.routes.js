@@ -37,6 +37,16 @@ router.put(
     if (!section) throw new NotFoundError('Section not found.');
     if (section.facultyId !== req.user.id) throw new ForbiddenError('Only the assigned faculty may encode grades.');
 
+    // Finalized grades are official records: encoding is locked until the
+    // registrar reopens the section for correction (see /reopen).
+    const finalized = await prisma.gradeRecord.findFirst({
+      where: { sectionId: section.id, status: 'FINALIZED' },
+      select: { id: true },
+    });
+    if (finalized) {
+      throw new UnprocessableError('Grades are finalized for this section. Ask the Registrar to reopen it before making changes.');
+    }
+
     const roster = await prisma.enrollmentItem.findMany({
       where: { sectionId: section.id, request: { status: { in: ['PENDING', 'APPROVED'] } } },
       select: { request: { select: { studentId: true } } },
@@ -97,10 +107,22 @@ router.post(
       throw new ForbiddenError('Only the assigned faculty member can finalize this section.');
     }
 
-    const incomplete = await prisma.gradeRecord.findFirst({
-      where: { sectionId: section.id, grade: null },
+    // Every APPROVED student must have a computed grade; a student with no
+    // grade record at all must not slip through finalization. (Pending
+    // enrollments are excluded — their requests may still be rejected.)
+    const roster = await prisma.enrollmentItem.findMany({
+      where: { sectionId: section.id, request: { status: 'APPROVED' } },
+      select: { request: { select: { studentId: true } } },
     });
-    if (incomplete) throw new UnprocessableError('All enrolled students must have a computed grade before finalizing.');
+    const graded = await prisma.gradeRecord.findMany({
+      where: { sectionId: section.id, grade: { not: null } },
+      select: { studentId: true },
+    });
+    const gradedIds = new Set(graded.map((g) => g.studentId));
+    const missing = roster.filter((r) => !gradedIds.has(r.request.studentId));
+    if (missing.length > 0) {
+      throw new UnprocessableError('All enrolled students must have a computed grade before finalizing.');
+    }
 
     const updated = await prisma.$transaction([
       prisma.gradeRecord.updateMany({
@@ -111,6 +133,26 @@ router.post(
 
     await audit({ actorId: req.user.id, action: 'SECTION_FINALIZED', entityType: 'section', entityId: section.id });
     return ok(res, { finalized: updated[0].count });
+  }),
+);
+
+// Registrar-controlled correction flow: reopens a finalized section so the
+// assigned faculty can fix grades. The change is audited and the grades go
+// back to DRAFT, so nothing is ever silently rewritten.
+router.post(
+  '/section/:sectionId/reopen',
+  authenticate,
+  allowRoles('REGISTRAR', 'ADMIN'),
+  validate(z.object({ sectionId: z.string().uuid() }), 'params'),
+  asyncHandler(async (req, res) => {
+    const section = await prisma.section.findUnique({ where: { id: req.params.sectionId } });
+    if (!section) throw new NotFoundError('Section not found.');
+    const updated = await prisma.gradeRecord.updateMany({
+      where: { sectionId: section.id, status: 'FINALIZED' },
+      data: { status: 'DRAFT' },
+    });
+    await audit({ actorId: req.user.id, action: 'SECTION_REOPENED', entityType: 'section', entityId: section.id });
+    return ok(res, { reopened: updated.count });
   }),
 );
 

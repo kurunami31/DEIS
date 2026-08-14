@@ -9,6 +9,19 @@ import { audit } from '../../lib/audit.js';
 
 const router = Router();
 
+// Sensitive SPF fields ADMISSION does not need: family/emergency/spouse data,
+// income, ID photo, SCAS aptitude results, and personal contact details. The
+// office reviews admission identity + enrollment; it is not entitled to the
+// full profile that Registrar/Admin see.
+const ADMISSION_REDACTED_FIELDS = new Set([
+  'photo', 'dateOfBirth', 'civilStatus', 'citizenship', 'heightFt', 'weightKg', 'religion', 'tribe',
+  'personalEmail', 'contactNumber', 'permanentAddress', 'zipCode',
+  'spouseName', 'spouseOccupation', 'numberOfChildren',
+  'fatherName', 'fatherOccupation', 'fatherContact', 'motherName', 'motherOccupation', 'motherContact',
+  'parentsStatus', 'monthlyFamilyIncome', 'emergencyName', 'emergencyContact', 'emergencyAddress',
+  'scasGeneral', 'scasSpatial', 'scasVerbal', 'scasPerceptual', 'scasNumerical', 'scasManualDexterity',
+]);
+
 const spfSchema = z.object({
   // Core identity
   firstName: z.string().trim().min(1).max(50).optional(),
@@ -159,6 +172,10 @@ const createStudentSchema = z.object({
   campusCode: z.string().trim().min(1).max(20),
 });
 
+// Activation codes are valid for 30 days; after that the Registrar must issue
+// a fresh student record (or a new code) to the student.
+const ACTIVATION_CODE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
 async function generateActivationCode() {
   for (let attempt = 0; attempt < 10; attempt += 1) {
     const code = crypto.randomInt(0, 1_000_000).toString().padStart(6, '0');
@@ -183,7 +200,18 @@ async function createStudentRecord({ studentNo, firstName, lastName, sex, yearLe
   const activationCode = await generateActivationCode();
   try {
     const student = await prisma.studentProfile.create({
-      data: { studentNo, firstName, lastName, sex, yearLevel, strand, programId, campusId, activationCode },
+      data: {
+        studentNo,
+        firstName,
+        lastName,
+        sex,
+        yearLevel,
+        strand,
+        programId,
+        campusId,
+        activationCode,
+        activationExpiresAt: new Date(Date.now() + ACTIVATION_CODE_TTL_MS),
+      },
     });
     await audit({ actorId, action: 'STUDENT_REGISTERED', entityType: 'student', entityId: student.id, meta: { studentNo } });
     return student;
@@ -373,6 +401,10 @@ router.get(
       },
     });
     if (!student) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Student not found' } });
+    // Least privilege: ADMISSION sees the profile minus the sensitive fields.
+    if (req.user.role === 'ADMISSION') {
+      for (const key of ADMISSION_REDACTED_FIELDS) delete student[key];
+    }
     return ok(res, student);
   }),
 );

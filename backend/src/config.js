@@ -17,6 +17,11 @@ const envSchema = z.object({
   MAINTENANCE_MESSAGE: z
     .string()
     .default('The system is currently under maintenance. Please check back shortly.'),
+  // Whether the verify-student endpoint returns the activation code. The demo
+  // shows codes on-screen for convenience; production must deliver them
+  // privately (email/SMS/registrar) so knowing a student number is never
+  // enough to take over an account. Default: on outside production.
+  EXPOSE_ACTIVATION_CODES: z.enum(['true', 'false', '1', '0']).optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -43,4 +48,7 @@ export const config = {
   googleRedirectUri: parsed.data.GOOGLE_REDIRECT_URI,
   maintenanceMode: ['true', '1'].includes(parsed.data.MAINTENANCE_MODE),
   maintenanceMessage: parsed.data.MAINTENANCE_MESSAGE,
+  exposeActivationCodes: parsed.data.EXPOSE_ACTIVATION_CODES
+    ? ['true', '1'].includes(parsed.data.EXPOSE_ACTIVATION_CODES)
+    : parsed.data.NODE_ENV !== 'production',
 };
