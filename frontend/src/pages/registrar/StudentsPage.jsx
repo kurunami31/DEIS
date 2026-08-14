@@ -120,7 +120,7 @@ export default function StudentsPage() {
       });
       load();
     } catch (err) {
-      toast.error(err.message);
+      toast.error(err.details?.length ? err.details[0].message : err.message);
     } finally {
       setRegBusy(false);
     }

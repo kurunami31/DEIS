@@ -12,7 +12,7 @@ export function validate(schema, source = 'body') {
     if (!result.success) {
       const details = result.error.issues.map((issue) => ({
         field: issue.path.join('.'),
-        message: issue.message,
+        message: issue.path.length ? `${issue.path.join('.')}: ${issue.message}` : issue.message,
       }));
       return next(new ValidationError(details));
     }
