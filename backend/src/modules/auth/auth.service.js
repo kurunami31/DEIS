@@ -563,9 +563,12 @@ export async function oauthSession(user, { ip } = {}) {
 }
 
 export function serializeUser(user) {
+  const studentName = user.student
+    ? `${user.student.firstName} ${user.student.lastName}${user.student.nameSuffix ? ` ${user.student.nameSuffix}` : ''}`.trim()
+    : null;
   return {
     id: user.id,
-    fullName: user.fullName,
+    fullName: studentName || user.fullName,
     email: user.email,
     role: user.role,
     mustChangePassword: user.mustChangePassword,

@@ -76,7 +76,7 @@ export default function ProfilePage() {
       </div>
 
       {tab === 'overview' && <OverviewTab user={user} profile={profile} error={error} />}
-      {tab === 'edit' && user?.role === 'STUDENT' && <EditTab profile={profile} onSaved={setProfile} />}
+      {tab === 'edit' && user?.role === 'STUDENT' && <EditTab profile={profile} onSaved={setProfile} onUserUpdated={setUser} />}
       {tab === 'spf' && user?.role === 'STUDENT' && <SpfTab profile={profile} onSaved={setProfile} />}
       {tab === 'security' && <SecurityTab user={user} setUser={setUser} />}
     </div>
@@ -99,32 +99,41 @@ function OverviewTab({ user, profile, error }) {
           </span>
         </div>
 
-        {user?.role === 'STUDENT' && (
-          <div className="mt-5 border-t border-slate-100 pt-4">
-            {error ? (
-              <p className="text-xs text-red-600">{error}</p>
-            ) : profile ? (
-              <dl className="space-y-2.5 text-sm">
-                <Field label="Student number" value={profile.studentNo} mono />
-                <Field label="Program" value={profile.program?.name} />
-                <Field label="Campus" value={profile.campus?.name} />
-                <Field label="Year level" value={`Year ${profile.yearLevel ?? '—'}`} />
-                <Field label="Civil status" value={profile.civilStatus ? labelEnum(profile.civilStatus) : '—'} />
-                <Field label="Enrolled since" value={formatDate(profile.enrolledAt)} />
-                <Field
-                  label="Profile form"
-                  value={profile.spfCompletedAt ? `Completed ${formatDate(profile.spfCompletedAt)}` : 'Not submitted'}
-                  valueClass={profile.spfCompletedAt ? 'text-emerald-600' : 'text-amber-600'}
-                />
-              </dl>
-            ) : (
-              <div className="h-40 animate-pulse rounded-[15px] bg-slate-100" />
-            )}
-          </div>
+        {user?.role === 'STUDENT' && profile && (
+          <dl className="mt-5 space-y-2.5 border-t border-slate-100 pt-4 text-sm">
+            <Field label="Student number" value={profile.studentNo} mono />
+            <Field label="Program" value={profile.program?.name} />
+            <Field label="Campus" value={profile.campus?.name} />
+            <Field label="Year level" value={`Year ${profile.yearLevel ?? '—'}`} />
+            <Field label="Civil status" value={profile.civilStatus ? labelEnum(profile.civilStatus) : '—'} />
+          </dl>
         )}
       </section>
 
-      <section className="card card-pad lg:col-span-2">
+      <section className="card card-pad">
+        <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-600">
+          <GraduationCap size={15} className="text-primary-600" /> Academic status
+        </h3>
+        {error ? (
+          <p className="mt-3 text-xs text-red-600">{error}</p>
+        ) : profile ? (
+          <dl className="mt-3 space-y-2.5 text-sm">
+            <Field label="Enrolled since" value={formatDate(profile.enrolledAt)} />
+            <Field label="Requests submitted" value={profile.enrollmentRequests?.length} />
+            <Field label="Grades on record" value={profile.grades?.length} />
+            <Field label="Active term" value={profile.enrollmentRequests?.[0]?.term?.label ?? '—'} />
+            <Field
+              label="Profile form"
+              value={profile.spfCompletedAt ? `Completed ${formatDate(profile.spfCompletedAt)}` : 'Not submitted'}
+              valueClass={profile.spfCompletedAt ? 'text-emerald-600' : 'text-amber-600'}
+            />
+          </dl>
+        ) : (
+          <div className="mt-3 h-40 animate-pulse rounded-[15px] bg-slate-100" />
+        )}
+      </section>
+
+      <section className="card card-pad">
         <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-600">
           <UserRound size={15} className="text-primary-600" /> Account details
         </h3>
@@ -133,18 +142,17 @@ function OverviewTab({ user, profile, error }) {
           <Field label="Member since" value={formatDate(user?.createdAt)} />
           <Field label="Last login" value={formatDate(user?.lastLoginAt)} />
         </dl>
-
         {user?.role === 'STUDENT' && profile && (
           <div className="mt-8 border-t border-slate-100 pt-4">
             <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-600">
               <CheckCircle2 size={15} className="text-emerald-600" />
               My enrollment status
             </h3>
-            <dl className="mt-3 space-y-2.5 text-sm">
-              <Field label="Requests submitted" value={profile.enrollmentRequests?.length} />
-              <Field label="Grades on record" value={profile.grades?.length} />
-              <Field label="Active term" value={profile.enrollmentRequests?.[0]?.term?.label ?? '—'} />
-            </dl>
+            <p className="mt-3 text-sm text-slate-500">
+              {profile.enrollmentRequests?.some((r) => r.status === 'APPROVED')
+                ? 'You have an approved enrollment for the current term.'
+                : 'No approved enrollment on record for the current term.'}
+            </p>
           </div>
         )}
       </section>
@@ -164,7 +172,7 @@ function termInfo(term) {
   return { year, semester };
 }
 
-function EditTab({ profile, onSaved }) {
+function EditTab({ profile, onSaved, onUserUpdated }) {
   const toast = useToast();
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -199,6 +207,7 @@ function EditTab({ profile, onSaved }) {
     try {
       const res = await request({ method: 'patch', url: '/students/me', data: form });
       onSaved({ ...profile, ...res.student });
+      request({ url: '/auth/me' }).then(onUserUpdated).catch(() => {});
       toast.success('Profile details updated.');
     } catch (err) {
       toast.error(err.message);
