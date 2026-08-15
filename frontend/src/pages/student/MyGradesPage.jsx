@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Award, CalendarDays, GraduationCap, Info, Scale } from 'lucide-react';
+import { Award, CalendarDays, ChevronDown, GraduationCap, Info, Scale } from 'lucide-react';
 import { request } from '../../lib/api.js';
 
 const GRADE_TONE = (grade) => {
@@ -159,25 +159,31 @@ export default function MyGradesPage() {
           <div className="mt-3 flex flex-wrap gap-4">
             <div className="min-w-44">
               <label className="label">Academic Year</label>
-              <select className="input" value={year ?? ''} onChange={(e) => setYear(e.target.value || null)}>
-                <option value="">All years</option>
-                {years.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select className="input appearance-none pr-9" value={year ?? ''} onChange={(e) => setYear(e.target.value || null)}>
+                  <option value="">All years</option>
+                  {years.map((y) => (
+                    <option key={y} value={y}>
+                      {y}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={15} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              </div>
             </div>
             <div className="min-w-44">
               <label className="label">Semester</label>
-              <select className="input" value={sem ?? ''} onChange={(e) => setSem(e.target.value || null)}>
-                <option value="">All semesters</option>
-                {SEMESTER_OPTIONS.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select className="input appearance-none pr-9" value={sem ?? ''} onChange={(e) => setSem(e.target.value || null)}>
+                  <option value="">All semesters</option>
+                  {SEMESTER_OPTIONS.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={15} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              </div>
             </div>
           </div>
       </section>
