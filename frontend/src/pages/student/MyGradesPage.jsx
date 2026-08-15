@@ -194,9 +194,9 @@ export default function MyGradesPage() {
                   <thead>
                     <tr>
                       <th>Subjects</th>
-                      <th className="text-center">Units</th>
+                      <th className="!text-center">Units</th>
                       <th>Grade</th>
-                      <th className="text-center">Compiled Grade</th>
+                      <th className="!text-center">Compiled Grade</th>
                       <th>Remarks</th>
                     </tr>
                   </thead>
