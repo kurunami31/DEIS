@@ -17,13 +17,6 @@ const FEATURES = [
   { icon: BarChart3, label: 'Institution analytics' },
 ];
 
-const glassCard =
-  'overflow-hidden rounded-[24px] border border-white/20 bg-white/10 shadow-2xl shadow-black/40 backdrop-blur-2xl';
-const glassInput =
-  'w-full rounded-[10px] border border-white/25 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-primary-200 outline-none transition focus:border-white/60 focus-visible:!shadow-[0_0_0_3px_rgba(255,255,255,0.18)]';
-const glassLabel = 'mb-1 block text-xs font-semibold text-primary-100';
-const glassLink = 'text-primary-100 transition hover:text-white';
-
 export default function LoginPage() {
   const { login, loginTotp } = useAuth();
   const toast = useToast();
@@ -121,14 +114,17 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative grid min-h-screen overflow-hidden bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 lg:grid-cols-[1.1fr_1fr]">
-      {/* Glass scene backdrop */}
-      <div className="pointer-events-none absolute inset-0">
-        <img src="/graduation-background.png" alt="" className="absolute inset-0 size-full object-cover opacity-15" />
-        <div className="absolute -left-32 -top-32 size-[26rem] rounded-full bg-accent-start/25 blur-3xl" />
-        <div className="absolute -bottom-40 -right-24 size-[30rem] rounded-full bg-accent-mid/20 blur-3xl" />
-        <div className="absolute right-1/4 top-1/3 size-[22rem] rounded-full bg-primary-300/15 blur-3xl" />
-        <div className="absolute bottom-1/4 left-1/3 size-72 rounded-full bg-accent-end/20 blur-3xl" />
+    <div className="grid min-h-screen bg-slate-50 lg:grid-cols-[1.1fr_1fr]">
+      {/* Brand panel */}
+      <div className="relative hidden overflow-hidden bg-primary-900 lg:flex lg:flex-col lg:justify-between lg:p-14">
+        <img
+          src="/graduation-background.png"
+          alt=""
+          className="absolute inset-0 size-full object-cover opacity-40"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-accent-start/40 via-primary-900/80 to-primary-950" />
+        <div className="absolute -left-32 -top-32 size-[26rem] rounded-full bg-accent-end/20 blur-3xl" />
+        <div className="absolute -bottom-40 -right-24 size-[30rem] rounded-full bg-white/5 blur-3xl" />
         <div
           className="absolute inset-0 opacity-[0.04]"
           style={{
@@ -137,11 +133,8 @@ export default function LoginPage() {
             backgroundSize: '56px 56px',
           }}
         />
-      </div>
 
-      {/* Brand panel */}
-      <div className="relative z-10 hidden lg:flex lg:flex-col lg:justify-between lg:p-14">
-        <div className="flex items-center gap-4">
+        <div className="relative z-10 flex items-center gap-4">
           <Logo size={72} className="rounded-2xl bg-white p-2 shadow-xl" />
           <div className="leading-tight">
             <p className="text-xl font-bold tracking-wide text-white">Davao Oriental State University</p>
@@ -149,7 +142,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="max-w-lg text-white">
+        <div className="relative z-10 max-w-lg text-white">
           <span className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-primary-100 backdrop-blur">
             <Sparkles size={12} /> DEIS Portal
           </span>
@@ -164,7 +157,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div>
+        <div className="relative z-10">
           <div className="mb-4 flex flex-wrap gap-2">
             {FEATURES.map((f) => (
               <span
@@ -191,35 +184,35 @@ export default function LoginPage() {
       </div>
 
       {/* Form panel */}
-      <div className="relative z-10 flex items-center justify-center p-6">
+      <div className="flex items-center justify-center p-6">
         <div className="w-full max-w-sm">
           <div className="mb-8 flex items-center gap-3 lg:hidden">
             <Logo size={52} className="rounded-xl bg-white p-1.5 shadow" />
             <div className="leading-tight">
-              <p className="text-base font-bold text-white">Davao Oriental State University</p>
-              <p className="text-xs text-primary-200">DOrSU Enrollment Information System</p>
+              <p className="text-base font-bold text-primary-700">Davao Oriental State University</p>
+              <p className="text-xs text-slate-500">DOrSU Enrollment Information System</p>
             </div>
           </div>
 
-          <div className={glassCard}>
-            <div className="border-b border-white/15 px-6 py-5">
-              <h1 className="text-xl font-bold text-white">Sign in</h1>
-              <p className="mt-1 text-sm text-primary-200">Use your official DOrSU credentials to continue.</p>
+          <div className="overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-lg shadow-slate-200/60">
+            <div className="border-b border-slate-100 bg-gradient-to-r from-primary-50 to-transparent px-6 py-5">
+              <h1 className="text-xl font-bold text-primary-700">Sign in</h1>
+              <p className="mt-1 text-sm text-slate-500">Use your official DOrSU credentials to continue.</p>
             </div>
 
             <div className="p-6">
               {error && (
-                <div className="mb-4 rounded-lg border border-red-400/40 bg-red-500/20 px-3 py-2 text-sm text-red-100">{error}</div>
+                <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
               )}
 
               {resetDone ? (
                 <div className="space-y-4 text-center">
-                  <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-400/20">
-                    <BadgeCheck size={24} className="text-emerald-300" />
+                  <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-50">
+                    <BadgeCheck size={24} className="text-emerald-600" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-white">Password reset successfully</p>
-                    <p className="mt-1 text-xs text-primary-200">
+                    <p className="text-sm font-semibold text-slate-800">Password reset successfully</p>
+                    <p className="mt-1 text-xs text-slate-500">
                       You can now sign in with your new password.
                     </p>
                   </div>
@@ -240,22 +233,22 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setResetStep('identifier')}
-                    className={`inline-flex items-center gap-1 text-xs font-medium ${glassLink}`}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-primary-700"
                   >
                     <ArrowLeft size={13} /> Back
                   </button>
                   <div>
-                    <p className="text-sm font-semibold text-white">Answer security questions</p>
-                    <p className="mt-1 text-xs text-primary-200">
+                    <p className="text-sm font-semibold text-slate-800">Answer security questions</p>
+                    <p className="mt-1 text-xs text-slate-500">
                       Answer the questions you set up to verify your identity.
                     </p>
                   </div>
                   {resetQuestions.map((q, i) => (
                     <div key={q.questionId}>
-                      <label className={glassLabel} htmlFor={`sq-${q.questionId}`}>{q.questionLabel}</label>
+                      <label className="label" htmlFor={`sq-${q.questionId}`}>{q.questionLabel}</label>
                       <input
                         id={`sq-${q.questionId}`}
-                        className={glassInput}
+                        className="input"
                         value={resetAnswers[i]?.answer ?? ''}
                         onChange={(e) => {
                           const next = [...resetAnswers];
@@ -267,11 +260,11 @@ export default function LoginPage() {
                     </div>
                   ))}
                   <div>
-                    <label className={glassLabel} htmlFor="resetNewPassword">New password</label>
+                    <label className="label" htmlFor="resetNewPassword">New password</label>
                     <input
                       id="resetNewPassword"
                       type={showPassword ? 'text' : 'password'}
-                      className={glassInput}
+                      className="input"
                       placeholder="At least 12 characters"
                       value={resetNewPassword}
                       onChange={(e) => setResetNewPassword(e.target.value)}
@@ -288,22 +281,22 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setResetStep(null)}
-                    className={`inline-flex items-center gap-1 text-xs font-medium ${glassLink}`}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-primary-700"
                   >
                     <ArrowLeft size={13} /> Back to sign in
                   </button>
                   <div>
-                    <p className="text-sm font-semibold text-white">Reset your password</p>
-                    <p className="mt-1 text-xs text-primary-200">
+                    <p className="text-sm font-semibold text-slate-800">Reset your password</p>
+                    <p className="mt-1 text-xs text-slate-500">
                       Enter your email or student number. You&apos;ll verify your identity with
                       security questions set up on your account.
                     </p>
                   </div>
                   <div>
-                    <label className={glassLabel} htmlFor="resetIdentifier">Email or Student Number</label>
+                    <label className="label" htmlFor="resetIdentifier">Email or Student Number</label>
                     <input
                       id="resetIdentifier"
-                      className={glassInput}
+                      className="input"
                       placeholder="e.g. registrar@dorsu.edu.ph"
                       value={resetIdentifier}
                       onChange={(e) => setResetIdentifier(e.target.value)}
@@ -317,20 +310,20 @@ export default function LoginPage() {
                 </form>
               ) : challenge ? (
                 <form onSubmit={handleCodeSubmit} className="space-y-4">
-                  <div className="flex items-center gap-3 rounded-xl border border-white/20 bg-white/10 px-4 py-3">
-                    <ShieldEllipsis size={20} className="shrink-0 text-primary-100" />
+                  <div className="flex items-center gap-3 rounded-xl border border-primary-200 bg-primary-50 px-4 py-3">
+                    <ShieldEllipsis size={20} className="shrink-0 text-primary-700" />
                     <div>
-                      <p className="text-sm font-semibold text-white">Two-factor verification</p>
-                      <p className="text-xs text-primary-200">
+                      <p className="text-sm font-semibold text-primary-800">Two-factor verification</p>
+                      <p className="text-xs text-primary-700/80">
                         Password verified. Enter the 6-digit code from your authenticator app.
                       </p>
                     </div>
                   </div>
                   <div>
-                    <label className={glassLabel} htmlFor="totpCode">Authenticator code</label>
+                    <label className="label" htmlFor="totpCode">Authenticator code</label>
                     <input
                       id="totpCode"
-                      className={`${glassInput} text-center font-mono text-lg tracking-[0.5em]`}
+                      className="input text-center font-mono !text-lg tracking-[0.5em]"
                       placeholder="• • • • • •"
                       value={code}
                       onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
@@ -350,7 +343,7 @@ export default function LoginPage() {
                       setChallenge(null);
                       setCode('');
                     }}
-                    className={`w-full text-center text-sm ${glassLink}`}
+                    className="w-full text-center text-sm text-slate-500 hover:text-slate-700"
                   >
                     Back to sign in
                   </button>
@@ -358,12 +351,12 @@ export default function LoginPage() {
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label className={glassLabel} htmlFor="identifier">Email or Student Number</label>
+                    <label className="label" htmlFor="identifier">Email or Student Number</label>
                     <div className="relative">
-                      <Mail size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-primary-200" />
+                      <Mail size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                       <input
                         id="identifier"
-                        className={`${glassInput} pl-9`}
+                        className="input !pl-9"
                         placeholder="e.g. registrar@dorsu.edu.ph"
                         value={identifier}
                         onChange={(e) => setIdentifier(e.target.value)}
@@ -374,13 +367,13 @@ export default function LoginPage() {
                   </div>
 
                   <div>
-                    <label className={glassLabel} htmlFor="password">Password</label>
+                    <label className="label" htmlFor="password">Password</label>
                     <div className="relative">
-                      <LockKeyhole size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-primary-200" />
+                      <LockKeyhole size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                       <input
                         id="password"
                         type={showPassword ? 'text' : 'password'}
-                        className={`${glassInput} pl-9 pr-10`}
+                        className="input !pl-9 !pr-10"
                         placeholder="••••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
@@ -389,7 +382,7 @@ export default function LoginPage() {
                       />
                       <button
                         type="button"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-primary-200 hover:text-white"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                         onClick={() => setShowPassword((v) => !v)}
                         aria-label={showPassword ? 'Hide password' : 'Show password'}
                       >
@@ -409,7 +402,7 @@ export default function LoginPage() {
                       setError(null);
                       setResetStep('identifier');
                     }}
-                    className={`flex w-full items-center justify-center gap-1.5 text-sm ${glassLink}`}
+                    className="flex w-full items-center justify-center gap-1.5 text-sm text-slate-500 transition hover:text-primary-700"
                   >
                     <KeyRound size={14} />
                     Forgot password?
@@ -419,33 +412,30 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="mt-4 rounded-[20px] border border-white/20 bg-white/10 p-5 backdrop-blur-xl">
-            <div className="flex items-center gap-2 text-sm font-semibold text-white">
-              <GraduationCap size={17} className="text-primary-100" />
+          <div className="mt-4 rounded-[20px] border border-primary-100 bg-primary-50 p-5">
+            <div className="flex items-center gap-2 text-sm font-semibold text-primary-700">
+              <GraduationCap size={17} />
               New student?
             </div>
-            <p className="mt-1 text-xs leading-relaxed text-primary-200">
+            <p className="mt-1 text-xs leading-relaxed text-primary-700/80">
               First-time enrollees activate their credentials through the portal onboarding flow.
             </p>
-            <Link
-              to="/verify"
-              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-[10px] border border-white/30 bg-white/15 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/25"
-            >
+            <Link to="/verify" className="btn-secondary mt-3 w-full justify-center">
               <UserPlus size={15} />
               Verify student number
             </Link>
           </div>
 
-          <p className="mt-6 text-center text-[11px] text-primary-200">
+          <p className="mt-6 text-center text-[11px] text-slate-400">
             For authorized DOrSU personnel and students only. Access is monitored.
           </p>
-          <p className="mt-3 text-center text-[11px] text-primary-200">
+          <p className="mt-3 text-center text-[11px] text-slate-400">
             Developed by{' '}
             <a
               href="https://kurunami31.github.io/Portfolio/"
               target="_blank"
               rel="noopener noreferrer"
-              className="font-semibold text-white underline underline-offset-2 hover:text-accent-mid"
+              className="font-semibold text-primary-600 underline underline-offset-2 hover:text-primary-800"
             >
               Christopher Lyod B. Mercado
             </a>
