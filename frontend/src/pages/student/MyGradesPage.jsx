@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Award, CalendarDays, ChevronDown, GraduationCap, Info, Scale } from 'lucide-react';
+import { Award, CalendarDays, GraduationCap, Info, Scale } from 'lucide-react';
 import { request } from '../../lib/api.js';
+import { Dropdown } from '../../components/ui.jsx';
 
 const GRADE_TONE = (grade) => {
   if (grade <= 1.5) return 'badge-green';
@@ -159,31 +160,24 @@ export default function MyGradesPage() {
           <div className="mt-3 flex flex-wrap gap-4">
             <div className="min-w-44">
               <label className="label">Academic Year</label>
-              <div className="relative">
-                <select className="input appearance-none pr-9" value={year ?? ''} onChange={(e) => setYear(e.target.value || null)}>
-                  <option value="">All years</option>
-                  {years.map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={15} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              </div>
+              <Dropdown
+                value={year ?? ''}
+                placeholder="All years"
+                options={[{ value: '', label: 'All years' }, ...years.map((y) => ({ value: y, label: y }))]}
+                onChange={(v) => setYear(v || null)}
+              />
             </div>
             <div className="min-w-44">
               <label className="label">Semester</label>
-              <div className="relative">
-                <select className="input appearance-none pr-9" value={sem ?? ''} onChange={(e) => setSem(e.target.value || null)}>
-                  <option value="">All semesters</option>
-                  {SEMESTER_OPTIONS.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={15} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              </div>
+              <Dropdown
+                value={sem ?? ''}
+                placeholder="All semesters"
+                options={[
+                  { value: '', label: 'All semesters' },
+                  ...SEMESTER_OPTIONS.map((s) => ({ value: s, label: s })),
+                ]}
+                onChange={(v) => setSem(v || null)}
+              />
             </div>
           </div>
       </section>
