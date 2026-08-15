@@ -71,7 +71,7 @@ export function Dropdown({ value, placeholder, options, onChange, className = ''
         <ChevronDown size={15} className={`shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="absolute left-0 right-0 top-full z-20 mt-1.5 overflow-hidden rounded-[12px] border border-slate-200 bg-white py-1 shadow-lg">
+        <div className="absolute left-0 right-0 top-full z-20 mt-1.5 max-h-64 overflow-y-auto rounded-[12px] border border-slate-200 bg-white py-1 shadow-lg">
           {options.map((opt) => (
             <button
               key={opt.value}
