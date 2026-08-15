@@ -194,9 +194,9 @@ export default function MyGradesPage() {
                   <thead>
                     <tr>
                       <th>Subjects</th>
-                      <th>Units</th>
+                      <th className="text-center">Units</th>
                       <th>Grade</th>
-                      <th>Compiled Grade</th>
+                      <th className="text-center">Compiled Grade</th>
                       <th>Remarks</th>
                     </tr>
                   </thead>
@@ -220,7 +220,7 @@ export default function MyGradesPage() {
                               </span>
                             )}
                           </td>
-                          <td className="font-mono text-xs">0</td>
+                          <td className="text-center font-mono text-xs">3</td>
                           <td>
                             {hasGrade ? (
                               <span className={`badge ${GRADE_TONE(value)}`}>{value.toFixed(2)}</span>
@@ -228,7 +228,7 @@ export default function MyGradesPage() {
                               <span className="badge badge-gray">Pending</span>
                             )}
                           </td>
-                          <td className="font-mono text-xs font-semibold">
+                          <td className="text-center font-mono text-xs font-semibold">
                             {compiled != null ? compiled.toFixed(2) : '—'}
                           </td>
                           <td className={`text-xs font-medium ${hasGrade ? (value <= 3.0 ? 'text-emerald-600' : 'text-red-500') : 'text-slate-400'}`}>
