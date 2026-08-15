@@ -429,6 +429,17 @@ export default function LoginPage() {
           <p className="mt-6 text-center text-[11px] text-slate-400">
             For authorized DOrSU personnel and students only. Access is monitored.
           </p>
+          <p className="mt-3 text-center text-[11px] text-slate-400">
+            Developed by{' '}
+            <a
+              href="https://kurunami31.github.io/Portfolio/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-primary-600 underline underline-offset-2 hover:text-primary-800"
+            >
+              Christopher Lyod B. Mercado
+            </a>
+          </p>
         </div>
       </div>
     </div>
