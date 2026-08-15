@@ -80,10 +80,11 @@ export default function MyGradesPage() {
     return [...map.values()];
   }, [data]);
 
-  const years = useMemo(
-    () => [...new Set(byTerm.map((g) => termYear(g.term)))].filter((y) => y !== '—').sort((a, b) => b.localeCompare(a)),
-    [byTerm],
-  );
+  const years = useMemo(() => {
+    const list = [];
+    for (let y = new Date().getFullYear(); y >= 1989; y -= 1) list.push(`${y}-${y + 1}`);
+    return list;
+  }, []);
 
   const filtered = useMemo(
     () =>
