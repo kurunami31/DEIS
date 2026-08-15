@@ -11,7 +11,7 @@ const GRADE_TONE = (grade) => {
   return 'badge-red';
 };
 
-const SEMESTER_OPTIONS = ['1st Sem', '2nd Sem', '3rd Sem', 'Summer'];
+const SEMESTER_OPTIONS = ['1st Sem', '2nd Sem', 'Summer'];
 
 const EQUIVALENTS = [
   ['1.00–1.25', 'EXCELLENT'],
