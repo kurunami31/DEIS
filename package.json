@@ -10,8 +10,5 @@
   "scripts": {
     "build": "npm --prefix frontend run build",
     "postinstall": "npm --prefix frontend install && npm --prefix backend install"
-  },
-  "dependencies": {
-    "serverless-http": "^4.0.0"
   }
 }

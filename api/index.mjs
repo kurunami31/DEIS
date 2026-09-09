@@ -1,7 +1,19 @@
-import serverless from 'serverless-http';
 import { createApp } from '../backend/src/app.js';
 
-const app = createApp();
-const handler = serverless(app);
+let app;
 
-export default handler;
+function getApp() {
+  if (!app) app = createApp();
+  return app;
+}
+
+export default async function handler(req, res) {
+  const expressApp = getApp();
+  return expressApp(req, res);
+}
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
