@@ -21,26 +21,19 @@ const CAMPUSES = [
 ];
 
 const FACULTIES = [
-  { code: 'FCE', name: 'Faculty of Computing and Engineering', campus: 'MATI' },
-  { code: 'FBM', name: 'Faculty of Business and Management', campus: 'MATI' },
-  { code: 'FED', name: 'Faculty of Education', campus: 'CATEEL' },
+  { code: 'FaCET', name: 'Faculty of Computing, Engineering, and Technology', campus: 'MATI' },
+  { code: 'FTED', name: 'Faculty of Teacher Education', campus: 'MATI' },
+  { code: 'FCJE', name: 'Faculty of Criminal Justice Education', campus: 'MATI' },
   { code: 'FNAHS', name: 'Faculty of Nursing and Allied Health Sciences', campus: 'MATI' },
-  { code: 'FAG', name: 'Faculty of Agriculture and Fisheries', campus: 'BAGANGA' },
-  { code: 'FST', name: 'Faculty of Science and Technology', campus: 'CATEEL' },
-  { code: 'FAH', name: 'Faculty of Arts and Humanities', campus: 'BANAYBANAY' },
+  { code: 'FALS', name: 'Faculty of Agriculture and Life Sciences', campus: 'BAGANGA' },
+  { code: 'FHSSC', name: 'Faculty of Humanities, Social Sciences, and Communication', campus: 'BANAYBANAY' },
+  { code: 'FBM', name: 'Faculty of Business and Management', campus: 'MATI' },
 ];
 
-/**
- * Curriculum definitions for each program. Subjects are listed in curriculum
- * order and grouped four per academic year; `yearLevel` is derived from the
- * index, `semester` is always the first block (demo scope).
- */
 const PROGRAMS = [
+  // ── FaCET ────────────────────────────────────────────────────────────
   {
-    code: 'BSIT',
-    name: 'Bachelor of Science in Information Technology',
-    faculty: 'FCE',
-    campus: 'MATI',
+    code: 'BSIT', name: 'BS Information Technology', faculty: 'FaCET', campus: 'MATI',
     curriculum: [
       { title: 'CC101 Introduction to Computing', units: 3, lec: 2, lab: 3 },
       { title: 'CC102 Computer Programming 1', units: 3, lec: 2, lab: 3 },
@@ -57,83 +50,301 @@ const PROGRAMS = [
     ],
   },
   {
-    code: 'BSCS',
-    name: 'Bachelor of Science in Computer Science',
-    faculty: 'FCE',
-    campus: 'MATI',
+    code: 'BSCE', name: 'BS Civil Engineering', faculty: 'FaCET', campus: 'MATI',
     curriculum: [
-      { title: 'CS101 Discrete Structures 1', units: 3, lec: 3, lab: 0 },
-      { title: 'CS102 Programming Fundamentals', units: 3, lec: 2, lab: 3 },
-      { title: 'GE141 Purposive Communication', units: 3, lec: 3, lab: 0 },
-      { title: 'GE142 Mathematics in the Modern World', units: 3, lec: 3, lab: 0 },
-      { title: 'CS201 Data Structures and Algorithms', units: 3, lec: 2, lab: 3, prereqs: ['CS102 Programming Fundamentals'] },
-      { title: 'CS202 Object-Oriented Programming', units: 3, lec: 2, lab: 3, prereqs: ['CS102 Programming Fundamentals'] },
-      { title: 'CS221 Computer Organization', units: 3, lec: 3, lab: 0 },
-      { title: 'CS301 Design and Analysis of Algorithms', units: 3, lec: 3, lab: 0, prereqs: ['CS201 Data Structures and Algorithms'] },
+      { title: 'CE101 Engineering Drawing 1', units: 2, lec: 1, lab: 3 },
+      { title: 'MATH101 Engineering Mathematics 1', units: 3, lec: 3, lab: 0 },
+      { title: 'GE101 Purposive Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'PHY101 Engineering Mechanics', units: 3, lec: 3, lab: 0 },
+      { title: 'CE201 Strength of Materials', units: 3, lec: 3, lab: 0, prereqs: ['PHY101 Engineering Mechanics'] },
+      { title: 'CE202 Surveying 1', units: 2, lec: 1, lab: 3, prereqs: ['CE101 Engineering Drawing 1'] },
+      { title: 'MATH201 Engineering Mathematics 2', units: 3, lec: 3, lab: 0, prereqs: ['MATH101 Engineering Mathematics 1'] },
+      { title: 'CE301 Structural Analysis 1', units: 3, lec: 3, lab: 0, prereqs: ['CE201 Strength of Materials'] },
+      { title: 'CE302 Geotechnical Engineering', units: 3, lec: 3, lab: 0, prereqs: ['CE201 Strength of Materials'] },
+      { title: 'CE401 Capstone Design 1', units: 3, lec: 2, lab: 3, prereqs: ['CE301 Structural Analysis 1'] },
     ],
   },
   {
-    code: 'BSBA-FM',
-    name: 'Bachelor of Science in Business Administration (Financial Management)',
-    faculty: 'FBM',
-    campus: 'MATI',
+    code: 'BSM', name: 'BS Mathematics', faculty: 'FaCET', campus: 'MATI',
     curriculum: [
-      { title: 'BA101 Fundamentals of Management', units: 3, lec: 3, lab: 0 },
-      { title: 'ACCT100 Basic Accounting', units: 3, lec: 3, lab: 0 },
-      { title: 'GE110 Purposive Communication', units: 3, lec: 3, lab: 0 },
-      { title: 'BA201 Financial Management 1', units: 3, lec: 3, lab: 0, prereqs: ['ACCT100 Basic Accounting'] },
-      { title: 'BA301 Operations Management', units: 3, lec: 3, lab: 0, prereqs: ['BA101 Fundamentals of Management'] },
+      { title: 'MATH101 Calculus 1', units: 4, lec: 4, lab: 0 },
+      { title: 'MATH102 Linear Algebra', units: 3, lec: 3, lab: 0 },
+      { title: 'GE101 Purposive Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'GE102 Mathematics in the Modern World', units: 3, lec: 3, lab: 0 },
+      { title: 'MATH201 Calculus 2', units: 4, lec: 4, lab: 0, prereqs: ['MATH101 Calculus 1'] },
+      { title: 'MATH202 Differential Equations', units: 3, lec: 3, lab: 0, prereqs: ['MATH101 Calculus 1'] },
+      { title: 'MATH203 Probability and Statistics', units: 3, lec: 3, lab: 0, prereqs: ['MATH102 Linear Algebra'] },
+      { title: 'MATH301 Abstract Algebra', units: 3, lec: 3, lab: 0, prereqs: ['MATH102 Linear Algebra'] },
     ],
   },
   {
-    code: 'BSEd',
-    name: 'Bachelor of Secondary Education (Science)',
-    faculty: 'FED',
-    campus: 'CATEEL',
+    code: 'BITM', name: 'Bachelor in Industrial Technology Management', faculty: 'FaCET', campus: 'MATI',
+    curriculum: [
+      { title: 'ITM101 Fundamentals of Industrial Technology', units: 3, lec: 3, lab: 0 },
+      { title: 'MATH101 Industrial Mathematics', units: 3, lec: 3, lab: 0 },
+      { title: 'GE101 Purposive Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'ITM102 Technical Drawing', units: 2, lec: 1, lab: 3 },
+      { title: 'ITM201 Production Management', units: 3, lec: 3, lab: 0, prereqs: ['ITM101 Fundamentals of Industrial Technology'] },
+      { title: 'ITM202 Quality Control', units: 3, lec: 3, lab: 0, prereqs: ['ITM101 Fundamentals of Industrial Technology'] },
+      { title: 'ITM301 Industrial Safety Management', units: 3, lec: 3, lab: 0 },
+    ],
+  },
+  {
+    code: 'BSMRS', name: 'BS Mathematics with Research Statistics', faculty: 'FaCET', campus: 'MATI',
+    curriculum: [
+      { title: 'MATH101 Calculus 1', units: 4, lec: 4, lab: 0 },
+      { title: 'STAT101 Introduction to Statistics', units: 3, lec: 3, lab: 0 },
+      { title: 'GE101 Purposive Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'MATH102 Linear Algebra', units: 3, lec: 3, lab: 0 },
+      { title: 'MATH201 Calculus 2', units: 4, lec: 4, lab: 0, prereqs: ['MATH101 Calculus 1'] },
+      { title: 'STAT201 Statistical Inference', units: 3, lec: 3, lab: 0, prereqs: ['STAT101 Introduction to Statistics'] },
+      { title: 'STAT202 Regression Analysis', units: 3, lec: 3, lab: 0, prereqs: ['STAT101 Introduction to Statistics'] },
+      { title: 'MATH301 Research Methods in Mathematics', units: 3, lec: 3, lab: 0, prereqs: ['STAT201 Statistical Inference'] },
+    ],
+  },
+
+  // ── FTED ────────────────────────────────────────────────────────────
+  {
+    code: 'BSED-ENG', name: 'BSEd Major in English', faculty: 'FTED', campus: 'MATI',
     curriculum: [
       { title: 'ED101 The Teaching Profession', units: 3, lec: 3, lab: 0 },
-      { title: 'ED109 Field Study 1', units: 3, lec: 3, lab: 0, prereqs: ['ED101 The Teaching Profession'] },
+      { title: 'ENG101 Purposive Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'LIT101 World Literature', units: 3, lec: 3, lab: 0 },
+      { title: 'ED102 Foundations of Education', units: 3, lec: 3, lab: 0 },
+      { title: 'ENG201 Communication Arts', units: 3, lec: 3, lab: 0, prereqs: ['ENG101 Purposive Communication'] },
+      { title: 'ED201 Principles of Teaching', units: 3, lec: 3, lab: 0, prereqs: ['ED101 The Teaching Profession'] },
+      { title: 'ED209 Field Study 1', units: 3, lec: 3, lab: 0, prereqs: ['ED101 The Teaching Profession'] },
     ],
   },
   {
-    code: 'BSN',
-    name: 'Bachelor of Science in Nursing',
-    faculty: 'FNAHS',
-    campus: 'MATI',
+    code: 'BSED-MATH', name: 'BSEd Major in Mathematics', faculty: 'FTED', campus: 'MATI',
+    curriculum: [
+      { title: 'ED101 The Teaching Profession', units: 3, lec: 3, lab: 0 },
+      { title: 'MATH101 College Algebra', units: 3, lec: 3, lab: 0 },
+      { title: 'GE101 Purposive Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'ED102 Foundations of Education', units: 3, lec: 3, lab: 0 },
+      { title: 'MATH201 Plane and Solid Geometry', units: 3, lec: 3, lab: 0, prereqs: ['MATH101 College Algebra'] },
+      { title: 'ED201 Principles of Teaching', units: 3, lec: 3, lab: 0, prereqs: ['ED101 The Teaching Profession'] },
+      { title: 'ED209 Field Study 1', units: 3, lec: 3, lab: 0, prereqs: ['ED101 The Teaching Profession'] },
+    ],
+  },
+  {
+    code: 'BEED', name: 'Bachelor of Elementary Education', faculty: 'FTED', campus: 'MATI',
+    curriculum: [
+      { title: 'ED101 The Teaching Profession', units: 3, lec: 3, lab: 0 },
+      { title: 'ED102 Foundations of Education', units: 3, lec: 3, lab: 0 },
+      { title: 'GE101 Purposive Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'GE102 Mathematics in the Modern World', units: 3, lec: 3, lab: 0 },
+      { title: 'ED201 Principles of Teaching', units: 3, lec: 3, lab: 0, prereqs: ['ED101 The Teaching Profession'] },
+      { title: 'ED202 Child Development', units: 3, lec: 3, lab: 0 },
+      { title: 'ED209 Field Study 1', units: 3, lec: 3, lab: 0, prereqs: ['ED101 The Teaching Profession'] },
+    ],
+  },
+  {
+    code: 'BPED', name: 'Bachelor of Physical Education', faculty: 'FTED', campus: 'MATI',
+    curriculum: [
+      { title: 'ED101 The Teaching Profession', units: 3, lec: 3, lab: 0 },
+      { title: 'PE101 Foundations of Physical Education', units: 3, lec: 3, lab: 0 },
+      { title: 'GE101 Purposive Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'PE102 Physical Fitness and Gymnastics', units: 2, lec: 1, lab: 3 },
+      { title: 'PE201 Sports and Dance', units: 2, lec: 1, lab: 3 },
+      { title: 'ED201 Principles of Teaching', units: 3, lec: 3, lab: 0, prereqs: ['ED101 The Teaching Profession'] },
+      { title: 'ED209 Field Study 1', units: 3, lec: 3, lab: 0, prereqs: ['ED101 The Teaching Profession'] },
+    ],
+  },
+  {
+    code: 'BSED-SCI', name: 'BSEd Major in Science', faculty: 'FTED', campus: 'MATI',
+    curriculum: [
+      { title: 'ED101 The Teaching Profession', units: 3, lec: 3, lab: 0 },
+      { title: 'SCI101 General Biology', units: 3, lec: 2, lab: 3 },
+      { title: 'GE101 Purposive Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'ED102 Foundations of Education', units: 3, lec: 3, lab: 0 },
+      { title: 'SCI201 General Chemistry', units: 3, lec: 2, lab: 3, prereqs: ['SCI101 General Biology'] },
+      { title: 'ED201 Principles of Teaching', units: 3, lec: 3, lab: 0, prereqs: ['ED101 The Teaching Profession'] },
+      { title: 'ED209 Field Study 1', units: 3, lec: 3, lab: 0, prereqs: ['ED101 The Teaching Profession'] },
+    ],
+  },
+  {
+    code: 'BECE', name: 'Bachelor of Early Childhood Education', faculty: 'FTED', campus: 'MATI',
+    curriculum: [
+      { title: 'ED101 The Teaching Profession', units: 3, lec: 3, lab: 0 },
+      { title: 'ECE101 Child Development', units: 3, lec: 3, lab: 0 },
+      { title: 'GE101 Purposive Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'ECE102 Early Childhood Curriculum', units: 3, lec: 3, lab: 0 },
+      { title: 'ED201 Principles of Teaching', units: 3, lec: 3, lab: 0, prereqs: ['ED101 The Teaching Profession'] },
+      { title: 'ECE201 Play and Learning', units: 3, lec: 3, lab: 0, prereqs: ['ECE101 Child Development'] },
+    ],
+  },
+  {
+    code: 'BSNED', name: 'Bachelor of Special Needs Education (Generalist)', faculty: 'FTED', campus: 'MATI',
+    curriculum: [
+      { title: 'ED101 The Teaching Profession', units: 3, lec: 3, lab: 0 },
+      { title: 'SNED101 Introduction to Special Needs Education', units: 3, lec: 3, lab: 0 },
+      { title: 'GE101 Purposive Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'SNED102 Learning Disabilities', units: 3, lec: 3, lab: 0, prereqs: ['SNED101 Introduction to Special Needs Education'] },
+      { title: 'ED201 Principles of Teaching', units: 3, lec: 3, lab: 0, prereqs: ['ED101 The Teaching Profession'] },
+      { title: 'SNED201 Inclusive Education', units: 3, lec: 3, lab: 0, prereqs: ['SNED101 Introduction to Special Needs Education'] },
+    ],
+  },
+  {
+    code: 'BSED-FIL', name: 'BSEd Major in Filipino', faculty: 'FTED', campus: 'MATI',
+    curriculum: [
+      { title: 'ED101 The Teaching Profession', units: 3, lec: 3, lab: 0 },
+      { title: 'FIL101 Komunikasyon sa Akademikong Filipino', units: 3, lec: 3, lab: 0 },
+      { title: 'FIL102 Panitikan ng Pilipinas', units: 3, lec: 3, lab: 0 },
+      { title: 'ED102 Foundations of Education', units: 3, lec: 3, lab: 0 },
+      { title: 'FIL201 Struktura ng Wikang Filipino', units: 3, lec: 3, lab: 0, prereqs: ['FIL101 Komunikasyon sa Akademikong Filipino'] },
+      { title: 'ED201 Principles of Teaching', units: 3, lec: 3, lab: 0, prereqs: ['ED101 The Teaching Profession'] },
+    ],
+  },
+  {
+    code: 'BTLE', name: 'Bachelor of Technology Livelihood Education', faculty: 'FTED', campus: 'MATI',
+    curriculum: [
+      { title: 'ED101 The Teaching Profession', units: 3, lec: 3, lab: 0 },
+      { title: 'TLE101 Industrial Arts Fundamentals', units: 3, lec: 2, lab: 3 },
+      { title: 'GE101 Purposive Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'TLE102 Home Economics', units: 3, lec: 2, lab: 3 },
+      { title: 'ED201 Principles of Teaching', units: 3, lec: 3, lab: 0, prereqs: ['ED101 The Teaching Profession'] },
+      { title: 'TLE201 Entrepreneurship', units: 3, lec: 3, lab: 0 },
+    ],
+  },
+
+  // ── FCJE ────────────────────────────────────────────────────────────
+  {
+    code: 'BSCRIM', name: 'BS Criminology', faculty: 'FCJE', campus: 'MATI',
+    curriculum: [
+      { title: 'CRM101 Introduction to Criminology', units: 3, lec: 3, lab: 0 },
+      { title: 'CRM102 Criminal Law 1', units: 3, lec: 3, lab: 0 },
+      { title: 'GE101 Purposive Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'CRM103 Criminal Sociology', units: 3, lec: 3, lab: 0 },
+      { title: 'CRM201 Criminal Law 2', units: 3, lec: 3, lab: 0, prereqs: ['CRM102 Criminal Law 1'] },
+      { title: 'CRM202 Forensic Science', units: 3, lec: 2, lab: 3, prereqs: ['CRM101 Introduction to Criminology'] },
+      { title: 'CRM203 Criminal Detection and Investigation', units: 3, lec: 3, lab: 0, prereqs: ['CRM102 Criminal Law 1'] },
+    ],
+  },
+
+  // ── FNAHS ───────────────────────────────────────────────────────────
+  {
+    code: 'BSN', name: 'BS Nursing', faculty: 'FNAHS', campus: 'MATI',
     curriculum: [
       { title: 'NUR101 Anatomy and Physiology', units: 3, lec: 2, lab: 3 },
-      { title: 'NUR201 Health Assessment (RLE)', units: 6, lec: 2, lab: 6, prereqs: ['NUR101 Anatomy and Physiology'] },
+      { title: 'NUR102 Fundamentals of Nursing', units: 3, lec: 2, lab: 3 },
+      { title: 'GE101 Purposive Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'NUR103 Health Assessment', units: 3, lec: 2, lab: 3 },
+      { title: 'NUR201 Adult Health Nursing 1', units: 3, lec: 2, lab: 3, prereqs: ['NUR101 Anatomy and Physiology'] },
+      { title: 'NUR202 Community Health Nursing', units: 3, lec: 2, lab: 3, prereqs: ['NUR102 Fundamentals of Nursing'] },
+      { title: 'NUR203 Nursing Leadership', units: 3, lec: 3, lab: 0, prereqs: ['NUR102 Fundamentals of Nursing'] },
     ],
   },
+
+  // ── FALS ────────────────────────────────────────────────────────────
   {
-    code: 'BSAG',
-    name: 'Bachelor of Science in Agriculture',
-    faculty: 'FAG',
-    campus: 'BAGANGA',
+    code: 'BSAGRI', name: 'BS Agriculture', faculty: 'FALS', campus: 'BAGANGA',
     curriculum: [
       { title: 'AGRI101 Fundamentals of Crop Production', units: 3, lec: 2, lab: 3 },
-      { title: 'AGRI201 Soil Science', units: 3, lec: 3, lab: 0 },
-      { title: 'AGRI301 Agricultural Economics', units: 3, lec: 3, lab: 0, prereqs: ['AGRI101 Fundamentals of Crop Production'] },
+      { title: 'AGRI102 Soil Science', units: 3, lec: 3, lab: 0 },
+      { title: 'GE101 Purposive Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'AGRI103 Agricultural Chemistry', units: 3, lec: 2, lab: 3 },
+      { title: 'AGRI201 Agricultural Economics', units: 3, lec: 3, lab: 0, prereqs: ['AGRI101 Fundamentals of Crop Production'] },
+      { title: 'AGRI202 Animal Science', units: 3, lec: 2, lab: 3, prereqs: ['AGRI101 Fundamentals of Crop Production'] },
+      { title: 'AGRI203 Plant Pathology', units: 3, lec: 2, lab: 3, prereqs: ['AGRI101 Fundamentals of Crop Production'] },
     ],
   },
   {
-    code: 'ABCOM',
-    name: 'Bachelor of Arts in Communication',
-    faculty: 'FAH',
-    campus: 'BANAYBANAY',
-    curriculum: [
-      { title: 'COM101 Fundamentals of Communication', units: 3, lec: 3, lab: 0 },
-      { title: 'COM201 Communication Research', units: 3, lec: 3, lab: 0, prereqs: ['COM101 Fundamentals of Communication'] },
-    ],
-  },
-  {
-    code: 'BSES',
-    name: 'Bachelor of Science in Environmental Science',
-    faculty: 'FST',
-    campus: 'CATEEL',
+    code: 'BSES', name: 'BS Environmental Science', faculty: 'FALS', campus: 'BAGANGA',
     curriculum: [
       { title: 'ENV101 Introduction to Environmental Science', units: 3, lec: 3, lab: 0 },
+      { title: 'BIO101 General Biology', units: 3, lec: 2, lab: 3 },
+      { title: 'GE101 Purposive Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'ENV102 Ecology and Biodiversity', units: 3, lec: 2, lab: 3, prereqs: ['ENV101 Introduction to Environmental Science'] },
       { title: 'ENV201 Environmental Pollution and Control', units: 3, lec: 3, lab: 0, prereqs: ['ENV101 Introduction to Environmental Science'] },
+      { title: 'ENV202 Natural Resource Management', units: 3, lec: 3, lab: 0, prereqs: ['ENV102 Ecology and Biodiversity'] },
+    ],
+  },
+  {
+    code: 'BSBIO', name: 'BS Biology', faculty: 'FALS', campus: 'BAGANGA',
+    curriculum: [
+      { title: 'BIO101 General Biology 1', units: 3, lec: 2, lab: 3 },
+      { title: 'BIO102 General Biology 2', units: 3, lec: 2, lab: 3, prereqs: ['BIO101 General Biology 1'] },
+      { title: 'GE101 Purposive Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'CHEM101 General Chemistry 1', units: 3, lec: 2, lab: 3 },
+      { title: 'BIO201 Cell Biology', units: 3, lec: 2, lab: 3, prereqs: ['BIO101 General Biology 1'] },
+      { title: 'BIO202 Genetics', units: 3, lec: 3, lab: 0, prereqs: ['BIO102 General Biology 2'] },
+      { title: 'BIO203 Microbiology', units: 3, lec: 2, lab: 3, prereqs: ['BIO102 General Biology 2'] },
+    ],
+  },
+  {
+    code: 'BSAGRIM', name: 'BS Agribusiness Management', faculty: 'FALS', campus: 'BAGANGA',
+    curriculum: [
+      { title: 'AGB101 Introduction to Agribusiness', units: 3, lec: 3, lab: 0 },
+      { title: 'ACCT101 Basic Accounting', units: 3, lec: 3, lab: 0 },
+      { title: 'GE101 Purposive Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'AGB102 Agricultural Economics', units: 3, lec: 3, lab: 0 },
+      { title: 'AGB201 Farm Management', units: 3, lec: 3, lab: 0, prereqs: ['AGB101 Introduction to Agribusiness'] },
+      { title: 'AGB202 Agricultural Marketing', units: 3, lec: 3, lab: 0, prereqs: ['AGB101 Introduction to Agribusiness'] },
+      { title: 'AGB203 Supply Chain Management', units: 3, lec: 3, lab: 0, prereqs: ['AGB102 Agricultural Economics'] },
+    ],
+  },
+
+  // ── FHSSC ───────────────────────────────────────────────────────────
+  {
+    code: 'ABPOLSCI', name: 'AB Political Science', faculty: 'FHSSC', campus: 'BANAYBANAY',
+    curriculum: [
+      { title: 'POLSCI101 Introduction to Political Science', units: 3, lec: 3, lab: 0 },
+      { title: 'GE101 Purposive Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'HIST101 Philippine History', units: 3, lec: 3, lab: 0 },
+      { title: 'POLSCI102 Political Theory', units: 3, lec: 3, lab: 0 },
+      { title: 'POLSCI201 Philippine Government', units: 3, lec: 3, lab: 0, prereqs: ['POLSCI101 Introduction to Political Science'] },
+      { title: 'POLSCI202 International Relations', units: 3, lec: 3, lab: 0, prereqs: ['POLSCI101 Introduction to Political Science'] },
+    ],
+  },
+  {
+    code: 'BSPSYCH', name: 'BS Psychology', faculty: 'FHSSC', campus: 'BANAYBANAY',
+    curriculum: [
+      { title: 'PSYCH101 General Psychology', units: 3, lec: 3, lab: 0 },
+      { title: 'GE101 Purposive Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'PSYCH102 Developmental Psychology', units: 3, lec: 3, lab: 0, prereqs: ['PSYCH101 General Psychology'] },
+      { title: 'PSYCH103 Biological Psychology', units: 3, lec: 2, lab: 3, prereqs: ['PSYCH101 General Psychology'] },
+      { title: 'PSYCH201 Social Psychology', units: 3, lec: 3, lab: 0, prereqs: ['PSYCH101 General Psychology'] },
+      { title: 'PSYCH202 Psychological Assessment', units: 3, lec: 3, lab: 0, prereqs: ['PSYCH102 Developmental Psychology'] },
+      { title: 'PSYCH203 Abnormal Psychology', units: 3, lec: 3, lab: 0, prereqs: ['PSYCH102 Developmental Psychology'] },
+    ],
+  },
+  {
+    code: 'BSDEVCOM', name: 'BS Development Communication', faculty: 'FHSSC', campus: 'BANAYBANAY',
+    curriculum: [
+      { title: 'DEVCOM101 Introduction to Development Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'GE101 Purposive Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'DEVCOM102 Communication Theories', units: 3, lec: 3, lab: 0 },
+      { title: 'DEVCOM103 Media Production', units: 3, lec: 2, lab: 3 },
+      { title: 'DEVCOM201 Development Journalism', units: 3, lec: 3, lab: 0, prereqs: ['DEVCOM101 Introduction to Development Communication'] },
+      { title: 'DEVCOM202 Community Broadcasting', units: 3, lec: 2, lab: 3, prereqs: ['DEVCOM103 Media Production'] },
+    ],
+  },
+
+  // ── FBM ─────────────────────────────────────────────────────────────
+  {
+    code: 'BSBA', name: 'BS Business Administration', faculty: 'FBM', campus: 'MATI',
+    curriculum: [
+      { title: 'BA101 Fundamentals of Management', units: 3, lec: 3, lab: 0 },
+      { title: 'ACCT101 Basic Accounting', units: 3, lec: 3, lab: 0 },
+      { title: 'GE101 Purposive Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'BA102 Business Mathematics', units: 3, lec: 3, lab: 0 },
+      { title: 'BA201 Financial Management', units: 3, lec: 3, lab: 0, prereqs: ['ACCT101 Basic Accounting'] },
+      { title: 'BA202 Marketing Management', units: 3, lec: 3, lab: 0, prereqs: ['BA101 Fundamentals of Management'] },
+      { title: 'BA203 Human Resource Management', units: 3, lec: 3, lab: 0, prereqs: ['BA101 Fundamentals of Management'] },
+    ],
+  },
+  {
+    code: 'BSHM', name: 'BS Hospitality Management', faculty: 'FBM', campus: 'MATI',
+    curriculum: [
+      { title: 'HM101 Introduction to Hospitality Management', units: 3, lec: 3, lab: 0 },
+      { title: 'HM102 Food and Beverage Service', units: 3, lec: 2, lab: 3 },
+      { title: 'GE101 Purposive Communication', units: 3, lec: 3, lab: 0 },
+      { title: 'HM103 Front Office Operations', units: 3, lec: 3, lab: 0 },
+      { title: 'HM201 Food Production', units: 3, lec: 2, lab: 3, prereqs: ['HM102 Food and Beverage Service'] },
+      { title: 'HM202 Housekeeping Management', units: 3, lec: 3, lab: 0, prereqs: ['HM101 Introduction to Hospitality Management'] },
+      { title: 'HM203 Tourism Management', units: 3, lec: 3, lab: 0 },
     ],
   },
 ];
@@ -144,11 +355,6 @@ const FULL_NAMES = [
   'Anna Marie Dela Cruz', 'Joshua Reyes', 'Maria Clara Villanueva', 'Eduardo Ignacio',
   'Sofia Patricia Ramos', 'Rafael Bautista', 'Isabella Gonzaga', 'Nathaniel Cruz',
   'Camille Navarro', 'Miguel Paez', 'Samantha Ferrer', 'Carlos Lim',
-  'Bianca Castillo', 'Francis Arce', 'Trisha Mae Sotto', 'Paolo Tagana',
-  'Angeline Rosales', 'Rico Salazar', 'Chloe Ann Dizon', 'Marco Villarino',
-  'Angela Marie Cordero', 'Elijah Domingo', 'Nathalie Abadilla', 'RJ Mercado',
-  'Veronica Curts', 'Lance De Vera', 'Mia Obispo', 'Kristoff Bumagat',
-  'Althea Andres', 'Zander Llanes', 'Rachel Lynn Quinto', 'Brianne Vivas',
 ];
 
 const FACULTY_NAMES = [
@@ -156,19 +362,17 @@ const FACULTY_NAMES = [
   'Ronnel A. Damole', 'Melchora T. Cando', 'Jessabel T. Escobar',
 ];
 
-// Staff/section accounts display their office instead of a personal name.
 const FACULTY_OFFICES = [
-  'Faculty of Computing and Engineering',
-  'Faculty of Business and Management',
-  'Faculty of Education',
+  'Faculty of Computing, Engineering, and Technology',
+  'Faculty of Teacher Education',
+  'Faculty of Criminal Justice Education',
   'Faculty of Nursing and Allied Health Sciences',
-  'Faculty of Agriculture and Fisheries',
-  'Faculty of Science and Technology',
+  'Faculty of Agriculture and Life Sciences',
+  'Faculty of Humanities, Social Sciences, and Communication',
 ];
 
 const EMAIL_TITLES = new Set(['engr', 'dr', 'prof', 'sir', 'madam']);
 
-/** Faculty accounts use their school email: <first>.<last>@dorsu.edu.ph */
 function schoolEmailFromName(name) {
   const tokens = name
     .split(/\s+/)
@@ -190,7 +394,6 @@ const ROOMS = [
   'Room 12 - Annex', 'Room 45 - Annex', 'Room 203 - Main', 'Room 305 - Main',
 ];
 
-/** Deterministic PRNG so a fresh database reproduces the same demo data. */
 function mulberry32(seed) {
   return function next() {
     seed |= 0;
@@ -211,18 +414,12 @@ function computeGrade(prelim, midterm, final) {
   return Math.round((prelim * 0.3 + midterm * 0.3 + final * 0.4) * 100) / 100;
 }
 
-/**
- * Maps an academic year (1..n) to the term where that year of study happened.
- * We keep a single semester block of history per year for demo scale.
- */
 const PREVIOUS_TERM_FOR_YEAR = { 1: 'AY-2024-2025-T1', 2: 'AY-2024-2025-T2' };
 const TERM_SUFFIX = { 'AY-2024-2025-T1': '241S', 'AY-2024-2025-T2': '242S', 'AY-2025-2026-T1': '251S' };
 
-const ACTIVE_SCENARIOS = ['PENDING', 'PENDING', 'APPROVED', 'APPROVED', 'REJECTED', 'WITHDRAWN', 'PENDING', 'APPROVED'];
+const ACTIVE_SCENARIOS = ['PENDING', 'APPROVED', 'APPROVED', 'REJECTED'];
 
 async function main() {
-  // Every staff account gets its own unique generated password derived from
-  // its email, so credentials are never shared across accounts.
   const staffDefs = [
     { email: 'registrar@dorsu.edu.ph', fullName: 'Office of the Registrar', role: 'REGISTRAR' },
     { email: 'admin@dorsu.edu.ph', fullName: 'DEIS Administration', role: 'ADMIN' },
@@ -231,13 +428,6 @@ async function main() {
       fullName: FACULTY_OFFICES[idx],
       role: 'FACULTY',
     })),
-    { email: 'accounting@dorsu.edu.ph', fullName: 'Finance & Accounting Office', role: 'ACCOUNTING' },
-    { email: 'admission@dorsu.edu.ph', fullName: 'Office of Admission', role: 'ADMISSION' },
-    { email: 'osa@dorsu.edu.ph', fullName: 'Office of Student Affairs', role: 'OSA' },
-    { email: 'ohs@dorsu.edu.ph', fullName: 'Office of Health Services', role: 'OHS' },
-    { email: 'cashiering@dorsu.edu.ph', fullName: 'Cashiering Section', role: 'CASHIERING' },
-    { email: 'oscd@dorsu.edu.ph', fullName: 'Office of Student Counseling & Development', role: 'OSCD' },
-    { email: 'faasg@dorsu.edu.ph', fullName: 'Financial Aids & Scholarship Grants', role: 'FAASG' },
   ];
 
   const staffUsers = [];
@@ -277,7 +467,6 @@ async function main() {
     });
   }
 
-  /* ------------------------------- Programs, subjects, prerequisites ---- */
   const programRecords = [];
   for (const def of PROGRAMS) {
     const program = await prisma.program.create({
@@ -324,8 +513,7 @@ async function main() {
   }
   console.log(`Seeded ${programRecords.length} programs with curricula`);
 
-  /* ---------------------------- Sections (per term and subject) --------- */
-  const sectionByTermSubject = new Map(); // key: `${termId}|${subjectId}`
+  const sectionByTermSubject = new Map();
   for (const record of programRecords) {
     for (const subject of record.subjects) {
       for (const term of TERMS) {
@@ -346,10 +534,6 @@ async function main() {
   }
   console.log(`Seeded ${sectionByTermSubject.size} sections across terms`);
 
-  /* ---------------------------------------- Students --------------------- */
-  // Student number format: YYYY-NNNN (year enrolled - random 4-digit suffix).
-  // A deterministic shuffle of the 0001..0032 pool keeps the demo stable
-  // while still looking random; 9999 is reserved for automated tests.
   const studentNoPool = Array.from({ length: FULL_NAMES.length }, (_, idx) => pad(idx + 1, 4));
   for (let i = studentNoPool.length - 1; i > 0; i -= 1) {
     const j = Math.floor(rand() * (i + 1));
@@ -373,9 +557,6 @@ async function main() {
         strand: STRANDS[i % STRANDS.length],
         programId: programRecord.program.id,
         campusId: campusRecords[programRecord.def.campus].id,
-        // Deterministic 6-digit activation code. In production this is
-        // delivered privately; the demo returns it on-screen. Codes stay valid
-        // for a year from seeding so the demo never hits expiry.
         activationCode: `${pad(i + 1, 3)}${pad(i * 7 + 20, 3)}`,
         activationExpiresAt: new Date(Date.now() + 365 * 86400000),
       },
@@ -384,9 +565,7 @@ async function main() {
   }
   console.log(`Seeded ${studentRecords.length} students`);
 
-  /* ------------------------- Historical years (grades for underclasses) -- */
   for (const record of studentRecords) {
-    // Only students in years 2-4 have history to show.
     const yearLevel = record.yearLevel;
     if (yearLevel < 2) continue;
 
@@ -436,7 +615,6 @@ async function main() {
   }
   console.log('Seeded historical enrollments and grades for upperclassmen');
 
-  /* ----------------------------- Active-term enrollment scenarios -------- */
   const activeTerm = TERMS.find((t) => t.isActive);
   for (let i = 0; i < ACTIVE_SCENARIOS.length; i += 1) {
     const record = studentRecords[i];
@@ -483,15 +661,12 @@ async function main() {
     console.log(`Scenario ${i}: ${record.fullName} -> ${status} (${request.id})`);
   }
 
-  /* ----------------------------- Clearance -------------------------------- */
   const clearanceTemplates = [];
   for (const def of CLEARANCE_TEMPLATES) {
     clearanceTemplates.push(
       await prisma.clearanceTemplate.upsert({
         where: { code: def.code },
         create: def,
-        // Backfill label/category/ownerRole so a re-seed heals templates that
-        // were created before office roles existed (ownerRole was null).
         update: { label: def.label, category: def.category, ownerRole: def.ownerRole ?? null },
       }),
     );
@@ -517,7 +692,6 @@ async function main() {
   }
   console.log('Seeded clearance templates and records');
 
-  /* ----------------------------- Calendar --------------------------------- */
   const activeStart = new Date(activeTerm.start).getTime();
   const calDefs = [
     { title: 'Term Opening Program', type: 'ACADEMIC', audience: 'ALL', startsAt: new Date(activeStart), endsAt: new Date(activeStart + 2 * 3600000), location: 'DOrSU Gymnasium' },
@@ -537,7 +711,7 @@ async function main() {
   for (const def of staffDefs) {
     console.log(`  ${def.email} / ${demoPassword(def.email)}  [${def.role} - ${def.fullName}]`);
   }
-  console.log('  Students: 2025-0001..0032 - activate via the verify screen, which shows the one-time activation code');
+  console.log('  Students: 2025-0001..0012 - activate via the verify screen, which shows the one-time activation code');
 }
 
 main()
