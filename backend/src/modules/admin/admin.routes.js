@@ -11,7 +11,7 @@ import { loadPolicy, invalidatePolicyCache, POLICY_DEFAULTS } from '../enrollmen
 
 const router = Router();
 
-const STAFF_ROLES = ['FACULTY', 'REGISTRAR', 'ADMIN', 'ACCOUNTING', 'ADMISSION', 'OSA', 'OHS', 'CASHIERING', 'OSCD', 'FAASG'];
+const STAFF_ROLES = ['FACULTY', 'REGISTRAR', 'ADMIN', 'ACCOUNTING', 'ADMISSION', 'OSA', 'OHS', 'CASHIERING', 'OSCD', 'FAASG', 'STUDENT'];
 
 const userCreateSchema = z
   .object({
@@ -21,11 +21,17 @@ const userCreateSchema = z
   })
   .superRefine((data, ctx) => {
     // Staff accounts use their school email so staff identity is verifiable.
-    if (data.role !== 'ADMIN' && !data.email.toLowerCase().endsWith('@dorsu.edu.ph')) {
+    // Student accounts use their student email.
+    const validEmail = data.role === 'STUDENT'
+      ? data.email.toLowerCase().endsWith('@students.dorsu.edu.ph')
+      : data.email.toLowerCase().endsWith('@dorsu.edu.ph');
+    if (data.role !== 'ADMIN' && !validEmail) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['email'],
-        message: 'Staff accounts must use their school email (name@dorsu.edu.ph).',
+        message: data.role === 'STUDENT'
+          ? 'Student accounts must use their student email (name@students.dorsu.edu.ph).'
+          : 'Staff accounts must use their school email (name@dorsu.edu.ph).',
       });
     }
   });
@@ -77,6 +83,17 @@ router.post(
         passwordHash,
         mustChangePassword: true,
         passwordHistory: { create: { passwordHash } },
+        ...(req.body.role === 'STUDENT' && {
+          studentProfile: {
+            create: {
+              studentNo: req.body.email.split('@')[0],
+              firstName: req.body.fullName.split(' ')[0] || req.body.fullName,
+              lastName: req.body.fullName.split(' ').slice(1).join(' ') || '',
+              sex: 'MALE',
+              yearLevel: 1,
+            },
+          },
+        }),
       },
       select: { id: true, fullName: true, email: true, role: true },
     });
