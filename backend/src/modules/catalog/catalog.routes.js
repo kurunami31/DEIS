@@ -153,7 +153,34 @@ router.delete(
   asyncHandler(async (req, res) => {
     const term = await prisma.term.findUnique({ where: { id: req.params.id } });
     if (!term) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Term not found' } });
-    await prisma.term.delete({ where: { id: req.params.id } });
+    if (term.isActive) return res.status(409).json({ error: { code: 'CONFLICT', message: 'Cannot delete the active term. Set another term as active first.' } });
+
+    await prisma.$transaction(async (tx) => {
+      // Delete grade records linked to sections in this term
+      const sections = await tx.section.findMany({ where: { termId: req.params.id }, select: { id: true } });
+      const sectionIds = sections.map((s) => s.id);
+      if (sectionIds.length > 0) {
+        await tx.gradeRecord.deleteMany({ where: { sectionId: { in: sectionIds } } });
+        await tx.enrollmentItem.deleteMany({ where: { sectionId: { in: sectionIds } } });
+      }
+
+      // Delete enrollment requests and their items
+      const requests = await tx.enrollmentRequest.findMany({ where: { termId: req.params.id }, select: { id: true } });
+      for (const r of requests) {
+        await tx.enrollmentItem.deleteMany({ where: { requestId: r.id } });
+      }
+      await tx.enrollmentRequest.deleteMany({ where: { termId: req.params.id } });
+
+      // Delete sections
+      await tx.section.deleteMany({ where: { termId: req.params.id } });
+
+      // Delete student clearances
+      await tx.studentClearance.deleteMany({ where: { termId: req.params.id } });
+
+      // Delete the term
+      await tx.term.delete({ where: { id: req.params.id } });
+    });
+
     await audit({ actorId: req.user.id, action: 'TERM_DELETED', entityType: 'term', entityId: req.params.id });
     return ok(res, { deleted: true });
   }),
