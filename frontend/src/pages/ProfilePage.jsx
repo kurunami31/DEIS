@@ -5,6 +5,7 @@ import { request } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { formatDate } from '../lib/utils.js';
+import CustomSelect from '../components/CustomSelect.jsx';
 
 const ROLE_LABEL = {
   STUDENT: 'Student',
@@ -970,11 +971,11 @@ function Select({ label, value, onChange, options }) {
   return (
     <div>
       <label className="label">{label}</label>
-      <select className="input" value={value} onChange={onChange}>
-        {options.map(([v, l]) => (
-          <option key={v} value={v}>{l}</option>
-        ))}
-      </select>
+      <CustomSelect
+        value={value}
+        onChange={onChange}
+        options={options.map(([v, l]) => ({ value: v, label: l }))}
+      />
     </div>
   );
 }

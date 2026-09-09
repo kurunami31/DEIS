@@ -3,6 +3,7 @@ import { Search, Users, UserPlus, Upload, Download, Copy, Check } from 'lucide-r
 import { request } from '../../lib/api.js';
 import { Modal } from '../../components/ui.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
+import CustomSelect from '../../components/CustomSelect.jsx';
 
 const CSV_TEMPLATE = [
   'studentNo,lastName,firstName,sex,yearLevel,programCode,campusCode,strand',
@@ -284,16 +285,22 @@ export default function StudentsPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="label" htmlFor="r-sex">Sex</label>
-                <select id="r-sex" className="input" value={regForm.sex} onChange={set('sex')}>
-                  <option value="MALE">Male</option>
-                  <option value="FEMALE">Female</option>
-                </select>
+                <CustomSelect
+                  value={regForm.sex}
+                  onChange={(val) => set('sex')(val)}
+                  options={[
+                    { value: 'MALE', label: 'Male' },
+                    { value: 'FEMALE', label: 'Female' },
+                  ]}
+                />
               </div>
               <div>
                 <label className="label" htmlFor="r-year">Year level</label>
-                <select id="r-year" className="input" value={regForm.yearLevel} onChange={set('yearLevel')}>
-                  {[1, 2, 3, 4, 5, 6].map((y) => <option key={y} value={y}>Year {y}</option>)}
-                </select>
+                <CustomSelect
+                  value={regForm.yearLevel}
+                  onChange={(val) => set('yearLevel')(val)}
+                  options={[1, 2, 3, 4, 5, 6].map((y) => ({ value: y, label: `Year ${y}` }))}
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">

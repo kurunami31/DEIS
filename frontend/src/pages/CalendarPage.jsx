@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, CalendarPlus, MapPin, User, Clock3 } from 'l
 import { request } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
+import CustomSelect from '../components/CustomSelect.jsx';
 
 const TYPE_BADGE = {
   ACADEMIC: 'badge-blue',
@@ -114,15 +115,21 @@ export default function CalendarPage() {
           </label>
           <input className="input" placeholder="Venue / location (optional)" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
           <div className="flex gap-3">
-            <select className="input" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
-              {Object.entries(TYPE_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-            </select>
-            <select className="input" value={form.audience} onChange={(e) => setForm({ ...form, audience: e.target.value })}>
-              <option value="ALL">Everyone</option>
-              <option value="STUDENTS">Students</option>
-              <option value="FACULTY">Faculty</option>
-              <option value="ADMIN">Admin only</option>
-            </select>
+            <CustomSelect
+              value={form.type}
+              onChange={(val) => setForm({ ...form, type: val })}
+              options={Object.entries(TYPE_LABEL).map(([v, l]) => ({ value: v, label: l }))}
+            />
+            <CustomSelect
+              value={form.audience}
+              onChange={(val) => setForm({ ...form, audience: val })}
+              options={[
+                { value: 'ALL', label: 'Everyone' },
+                { value: 'STUDENTS', label: 'Students' },
+                { value: 'FACULTY', label: 'Faculty' },
+                { value: 'ADMIN', label: 'Admin only' },
+              ]}
+            />
           </div>
           <textarea className="input md:col-span-2" placeholder="Description (optional)" rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           <div className="flex justify-end gap-2 md:col-span-2">
