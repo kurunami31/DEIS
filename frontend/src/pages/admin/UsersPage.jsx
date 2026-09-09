@@ -13,6 +13,7 @@ const ROLES = [
   { value: 'OSA', label: 'OSA' },
   { value: 'OHS', label: 'Health Services' },
   { value: 'CASHIERING', label: 'Cashiering' },
+  { value: 'STUDENT', label: 'Student' },
   { value: 'OSCD', label: 'Guidance & Counseling' },
   { value: 'FAASG', label: 'Financial Aids & Scholarships' },
 ];
@@ -195,6 +196,7 @@ function roleTone(role) {
     case 'OSA':
     case 'OSCD': return 'badge-purple';
     case 'OHS': return 'badge-amber';
+    case 'STUDENT': return 'badge-green';
     default: return 'badge-gray';
   }
 }
