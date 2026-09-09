@@ -174,7 +174,12 @@ router.delete(
       // Delete sections
       await tx.section.deleteMany({ where: { termId: req.params.id } });
 
-      // Delete student clearances
+      // Delete clearance signoffs, then student clearances
+      const clearances = await tx.studentClearance.findMany({ where: { termId: req.params.id }, select: { id: true } });
+      const clearanceIds = clearances.map((c) => c.id);
+      if (clearanceIds.length > 0) {
+        await tx.clearanceSignoff.deleteMany({ where: { clearanceId: { in: clearanceIds } } });
+      }
       await tx.studentClearance.deleteMany({ where: { termId: req.params.id } });
 
       // Delete the term
