@@ -112,31 +112,50 @@ router.post(
 router.patch(
   '/terms/:id',
   authenticate,
-  allowRoles('ADMIN'),
+  allowRoles('ADMIN', 'REGISTRAR'),
   validate(z.object({ id: z.string().uuid() }), 'params'),
   validate(
     z.object({
+      code: z.string().min(3).optional(),
+      label: z.string().min(3).optional(),
+      startDate: z.string().datetime().optional(),
+      endDate: z.string().datetime().optional(),
       isActive: z.boolean().optional(),
       enrollmentOpen: z.boolean().optional(),
     }),
   ),
   asyncHandler(async (req, res) => {
-    const { isActive, enrollmentOpen } = req.body;
+    const { code, label, startDate, endDate, isActive, enrollmentOpen } = req.body;
     const updates = await prisma.$transaction(async (tx) => {
       if (isActive === true) {
         await tx.term.updateMany({ data: { isActive: false } });
-        await tx.term.update({ where: { id: req.params.id }, data: { isActive: true } });
-      } else if (isActive === false) {
-        await tx.term.update({ where: { id: req.params.id }, data: { isActive: false } });
       }
-      if (enrollmentOpen !== undefined) {
-        await tx.term.update({ where: { id: req.params.id }, data: { enrollmentOpen } });
-      }
-      return tx.term.findUnique({ where: { id: req.params.id } });
+      const data = {};
+      if (code !== undefined) data.code = code;
+      if (label !== undefined) data.label = label;
+      if (startDate !== undefined) data.startDate = new Date(startDate);
+      if (endDate !== undefined) data.endDate = new Date(endDate);
+      if (isActive !== undefined) data.isActive = isActive;
+      if (enrollmentOpen !== undefined) data.enrollmentOpen = enrollmentOpen;
+      return tx.term.update({ where: { id: req.params.id }, data });
     });
     if (!updates) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Term not found' } });
     await audit({ actorId: req.user.id, action: 'TERM_UPDATED', entityType: 'term', entityId: req.params.id });
     return ok(res, updates);
+  }),
+);
+
+router.delete(
+  '/terms/:id',
+  authenticate,
+  allowRoles('ADMIN', 'REGISTRAR'),
+  validate(z.object({ id: z.string().uuid() }), 'params'),
+  asyncHandler(async (req, res) => {
+    const term = await prisma.term.findUnique({ where: { id: req.params.id } });
+    if (!term) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Term not found' } });
+    await prisma.term.delete({ where: { id: req.params.id } });
+    await audit({ actorId: req.user.id, action: 'TERM_DELETED', entityType: 'term', entityId: req.params.id });
+    return ok(res, { deleted: true });
   }),
 );
 

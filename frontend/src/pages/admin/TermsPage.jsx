@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CalendarDays, CalendarPlus, Check, Clock } from 'lucide-react';
+import { CalendarDays, CalendarPlus, Check, Clock, Pencil, Trash2 } from 'lucide-react';
 import { request } from '../../lib/api.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import { formatDate } from '../../lib/utils.js';
@@ -11,6 +11,13 @@ export default function TermsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ code: '', label: '', startDate: '', endDate: '', activate: false });
   const [creating, setCreating] = useState(false);
+
+  const [editingTerm, setEditingTerm] = useState(null);
+  const [editForm, setEditForm] = useState({ code: '', label: '', startDate: '', endDate: '' });
+  const [saving, setSaving] = useState(false);
+
+  const [deletingTerm, setDeletingTerm] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = () =>
     request({ url: '/catalog/terms' })
@@ -37,7 +44,7 @@ export default function TermsPage() {
           activate: form.activate,
         },
       });
-      toast.success(`Term “${form.label}” created.`);
+      toast.success(`Term "${form.label}" created.`);
       setShowCreate(false);
       setForm({ code: '', label: '', startDate: '', endDate: '', activate: false });
       load();
@@ -65,6 +72,55 @@ export default function TermsPage() {
       load();
     } catch (err) {
       toast.error(err.message);
+    }
+  };
+
+  const openEdit = (term) => {
+    setEditingTerm(term);
+    setEditForm({
+      code: term.code,
+      label: term.label,
+      startDate: term.startDate ? new Date(term.startDate).toISOString().split('T')[0] : '',
+      endDate: term.endDate ? new Date(term.endDate).toISOString().split('T')[0] : '',
+    });
+  };
+
+  const handleEdit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await request({
+        method: 'patch',
+        url: `/catalog/terms/${editingTerm.id}`,
+        data: {
+          code: editForm.code,
+          label: editForm.label,
+          startDate: `${editForm.startDate}T00:00:00.000Z`,
+          endDate: `${editForm.endDate}T23:59:59.000Z`,
+        },
+      });
+      toast.success(`Term "${editForm.label}" updated.`);
+      setEditingTerm(null);
+      load();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deletingTerm) return;
+    setDeleting(true);
+    try {
+      await request({ method: 'delete', url: `/catalog/terms/${deletingTerm.id}` });
+      toast.success(`Term "${deletingTerm.label}" deleted.`);
+      setDeletingTerm(null);
+      load();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -117,6 +173,12 @@ export default function TermsPage() {
               >
                 {term.enrollmentOpen ? 'Close enrollment' : 'Open enrollment'}
               </button>
+              <button className="btn-secondary !px-3 !py-1 text-xs" onClick={() => openEdit(term)}>
+                <Pencil size={12} /> Edit
+              </button>
+              <button className="btn-secondary !px-3 !py-1 text-xs text-red-600 hover:bg-red-50" onClick={() => setDeletingTerm(term)}>
+                <Trash2 size={12} /> Delete
+              </button>
             </div>
           </section>
         ))}
@@ -158,6 +220,59 @@ export default function TermsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {editingTerm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" onClick={() => setEditingTerm(null)}>
+          <div className="w-full max-w-md rounded-[15px] bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-slate-800">Edit academic term</h3>
+            <form onSubmit={handleEdit} className="mt-4 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">Code</label>
+                  <input className="input" value={editForm.code} onChange={(e) => setEditForm({ ...editForm, code: e.target.value })} required />
+                </div>
+                <div>
+                  <label className="label">Label</label>
+                  <input className="input" value={editForm.label} onChange={(e) => setEditForm({ ...editForm, label: e.target.value })} required />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">Start date</label>
+                  <input className="input" type="date" value={editForm.startDate} onChange={(e) => setEditForm({ ...editForm, startDate: e.target.value })} required />
+                </div>
+                <div>
+                  <label className="label">End date</label>
+                  <input className="input" type="date" value={editForm.endDate} onChange={(e) => setEditForm({ ...editForm, endDate: e.target.value })} required />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" className="btn-secondary !px-3 !py-1.5 text-xs" onClick={() => setEditingTerm(null)}>Cancel</button>
+                <button className="btn-primary !px-3 !py-1.5 text-xs" disabled={saving}>
+                  {saving ? 'Saving…' : 'Save changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {deletingTerm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" onClick={() => setDeletingTerm(null)}>
+          <div className="w-full max-w-sm rounded-[15px] bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-slate-800">Delete term</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              Are you sure you want to delete <strong>{deletingTerm.label}</strong>? This cannot be undone.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button className="btn-secondary !px-3 !py-1.5 text-xs" onClick={() => setDeletingTerm(null)}>Cancel</button>
+              <button className="btn-primary !px-3 !py-1.5 text-xs bg-red-600 hover:bg-red-700" disabled={deleting} onClick={handleDelete}>
+                {deleting ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
           </div>
         </div>
       )}
