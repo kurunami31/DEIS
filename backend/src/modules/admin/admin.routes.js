@@ -83,17 +83,6 @@ router.post(
         passwordHash,
         mustChangePassword: true,
         passwordHistory: { create: { passwordHash } },
-        ...(req.body.role === 'STUDENT' && {
-          studentProfile: {
-            create: {
-              studentNo: req.body.email.split('@')[0],
-              firstName: req.body.fullName.split(' ')[0] || req.body.fullName,
-              lastName: req.body.fullName.split(' ').slice(1).join(' ') || '',
-              sex: 'MALE',
-              yearLevel: 1,
-            },
-          },
-        }),
       },
       select: { id: true, fullName: true, email: true, role: true },
     });
