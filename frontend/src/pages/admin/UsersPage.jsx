@@ -3,6 +3,7 @@ import { ShieldCheck, UserCog, UserPlus, KeyRound } from 'lucide-react';
 import { request } from '../../lib/api.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import { formatDate } from '../../lib/utils.js';
+import CustomSelect from '../../components/CustomSelect.jsx';
 
 const ROLES = [
   { value: 'FACULTY', label: 'Faculty' },
@@ -161,11 +162,11 @@ export default function UsersPage() {
               </div>
               <div>
                 <label className="label">Role</label>
-                <select className="input" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-                  {creatableRoles.map((r) => (
-                    <option key={r.value} value={r.value}>{r.label}</option>
-                  ))}
-                </select>
+                <CustomSelect
+                  value={form.role}
+                  onChange={(val) => setForm({ ...form, role: val })}
+                  options={creatableRoles}
+                />
                 <p className="mt-1 text-xs text-slate-400">
                   A secure one-time password is generated automatically and shown after creation.
                 </p>
