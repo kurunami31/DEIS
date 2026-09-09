@@ -159,6 +159,17 @@ router.post(
 );
 
 router.post(
+  '/reset-password-otp',
+  verifyLimiter,
+  asyncHandler(async (req, res) => {
+    const { resetToken, newPassword } = req.body;
+    const result = await authService.resetPasswordWithOtp(resetToken, newPassword);
+    if (result.token) setSessionCookie(res, result.token);
+    return ok(res, { ok: true });
+  }),
+);
+
+router.post(
   '/consent',
   consentLimiter,
   authenticate,

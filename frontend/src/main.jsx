@@ -10,6 +10,7 @@ import PromoPage from './pages/PromoPage.jsx';
 import VerifyPage from './pages/auth/VerifyPage.jsx';
 import ActivatePage from './pages/auth/ActivatePage.jsx';
 import ForcePasswordChangePage from './pages/auth/ForcePasswordChangePage.jsx';
+import VerifyOtpPage from './pages/auth/VerifyOtpPage.jsx';
 import DpaConsentGate from './components/DpaConsentGate.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import EnrollPage from './pages/student/EnrollPage.jsx';
@@ -106,6 +107,7 @@ export default function App() {
               <Route path="/verify" element={<VerifyPage />} />
               <Route path="/promo" element={<PromoPage />} />
               <Route path="/activate" element={<ActivatePage />} />
+              <Route path="/verify-otp" element={<VerifyOtpPage />} />
 
               <Route
                 path="/"

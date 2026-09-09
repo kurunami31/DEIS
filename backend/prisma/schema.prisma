@@ -72,6 +72,7 @@ model User {
   activities        ActivityRecord[]
   passwordHistory   UserPasswordHistory[]
   universityActivities UniversityActivity[]
+  emailOtps            EmailOtp[]
 
   @@index([role])
 }
@@ -438,4 +439,23 @@ model ClearanceSignoff {
 
   @@unique([clearanceId, templateId])
   @@index([templateId, status])
+}
+
+// ---------------------------------------------------------------------------
+// Email OTP verification
+// ---------------------------------------------------------------------------
+
+model EmailOtp {
+  id        String   @id @default(uuid())
+  userId    String
+  code      String   // bcrypt-hashed 6-digit OTP
+  purpose   String   // ACTIVATION | PASSWORD_RESET | EMAIL_CONFIRM
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@index([expiresAt])
 }

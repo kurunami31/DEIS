@@ -43,6 +43,12 @@ export class UnprocessableError extends HttpError {
   }
 }
 
+export class TooManyRequestsError extends HttpError {
+  constructor(message = 'Too many requests. Please try again later.') {
+    super(429, message);
+  }
+}
+
 /** Wraps an async route handler so rejects flow to the error middleware. */
 export function asyncHandler(fn) {
   return (req, res, next) => {

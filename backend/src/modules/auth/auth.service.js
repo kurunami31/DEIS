@@ -350,17 +350,23 @@ export async function beginPasswordReset(identifier) {
   const user = await prisma.user.findFirst({
     where: { OR: [{ email: identifier.toLowerCase() }, { student: { studentNo: identifier.toUpperCase() } }] },
   });
-  if (!user || !user.isActive || !user.passwordQuestions) {
+  if (!user || !user.isActive) {
     throw new UnauthorizedError('Account not found or security questions are not set up.');
   }
-  const stored = safeJsonParse(user.passwordQuestions).map((q) => ({
-    questionId: q.questionId,
-    questionLabel: q.questionLabel,
-  }));
-  // Rotating nonce makes every issued reset token single-use.
-  const nonce = crypto.randomBytes(16).toString('hex');
-  await prisma.user.update({ where: { id: user.id }, data: { resetNonce: nonce } });
-  return { resetToken: signResetToken(user.id, nonce), questions: stored };
+  // If user has security questions, use that flow
+  if (user.passwordQuestions) {
+    const stored = safeJsonParse(user.passwordQuestions).map((q) => ({
+      questionId: q.questionId,
+      questionLabel: q.questionLabel,
+    }));
+    const nonce = crypto.randomBytes(16).toString('hex');
+    await prisma.user.update({ where: { id: user.id }, data: { resetNonce: nonce } });
+    return { resetToken: signResetToken(user.id, nonce), questions: stored, method: 'security-questions' };
+  }
+  // Otherwise, send OTP via email
+  const { sendOtp } = await import('../otp/otp.service.js');
+  const otpResult = await sendOtp(identifier, 'PASSWORD_RESET');
+  return { method: 'email-otp', message: otpResult.message, expiresIn: otpResult.expiresIn };
 }
 
 /** Step 2 of recovery: answers the questions and sets a new password. */
@@ -425,6 +431,58 @@ export async function finishPasswordReset(resetToken, answers, newPassword) {
     entityType: 'user',
     entityId: user.id,
     meta: { method: 'security-questions' },
+  });
+  return { ok: true, token: signToken(updated) };
+}
+
+/** Reset password using OTP verification token from the OTP module. */
+export async function resetPasswordWithOtp(resetToken, newPassword) {
+  let payload;
+  try {
+    payload = verifyResetToken(resetToken);
+  } catch {
+    throw new UnauthorizedError('This reset attempt has expired. Please start over.');
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: payload.sub }, include: { student: true } });
+  if (!user) throw new NotFoundError('User not found.');
+  if (user.role === 'ADMIN') {
+    throw new ForbiddenError('The administrator account cannot be recovered through the portal.');
+  }
+  if (!user.resetNonce || payload.nce !== user.resetNonce) {
+    throw new UnauthorizedError('This reset link has already been used. Please start over.');
+  }
+
+  await assertPasswordUsable(newPassword, user);
+  const updated = await prisma.$transaction(async (tx) => {
+    const passwordHash = await hashPassword(newPassword);
+    await tx.userPasswordHistory.create({ data: { userId: user.id, passwordHash } });
+    const keep = await tx.userPasswordHistory.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' },
+      take: PASSWORD_HISTORY_DEPTH,
+      select: { id: true },
+    });
+    await tx.userPasswordHistory.deleteMany({
+      where: { userId: user.id, id: { notIn: keep.map((h) => h.id) } },
+    });
+    return tx.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        mustChangePassword: false,
+        tokenVersion: { increment: 1 },
+        resetNonce: null,
+      },
+    });
+  });
+
+  await audit({
+    actorId: user.id,
+    action: 'PASSWORD_RESET',
+    entityType: 'user',
+    entityId: user.id,
+    meta: { method: 'email-otp' },
   });
   return { ok: true, token: signToken(updated) };
 }

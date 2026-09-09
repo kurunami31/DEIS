@@ -49,6 +49,12 @@ export default function LoginPage() {
     setResetBusy(true);
     try {
       const data = await request({ method: 'post', url: '/auth/forgot-password', data: { identifier: resetIdentifier } });
+      if (data.method === 'email-otp') {
+        // Redirect to OTP verification page
+        navigate(`/verify-otp?purpose=PASSWORD_RESET&identifier=${encodeURIComponent(resetIdentifier)}`);
+        return;
+      }
+      // Security questions flow
       setResetToken(data.resetToken);
       setResetQuestions(data.questions);
       setResetAnswers(data.questions.map((q) => ({ questionId: q.questionId, answer: '' })));

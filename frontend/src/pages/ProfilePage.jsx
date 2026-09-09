@@ -224,7 +224,7 @@ function EditTab({ profile, onSaved, onUserUpdated }) {
   const dateRegistered = registeredRequest?.submittedAt ?? profile.enrolledAt;
 
   return (
-    <section className="card card-pad max-w-2xl">
+    <section className="card card-pad mx-auto max-w-2xl">
       <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-600">
         <UserRound size={15} className="text-primary-600" /> Edit my details
       </h3>
@@ -740,7 +740,7 @@ function SecurityTab({ user, setUser }) {
 
   if (user.role === 'ADMIN') {
     return (
-      <section className="card card-pad max-w-xl">
+      <section className="card card-pad mx-auto max-w-xl">
         <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-600">
           <Lock size={15} className="text-primary-600" /> Password
         </h3>
@@ -754,7 +754,7 @@ function SecurityTab({ user, setUser }) {
 
   return (
     <>
-      <section className="card card-pad max-w-xl">
+      <section className="card card-pad mx-auto max-w-xl">
         <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-600">
           <KeyRound size={15} className="text-primary-600" /> Change password
         </h3>
@@ -781,7 +781,7 @@ function SecurityTab({ user, setUser }) {
         </form>
       </section>
 
-      <section className="card card-pad mt-6 max-w-xl">
+      <section className="card card-pad mx-auto mt-6 max-w-xl">
         <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-600">
           <ShieldCheck size={15} className="text-primary-600" /> Two-factor authentication
         </h3>
@@ -882,7 +882,7 @@ function SecurityTab({ user, setUser }) {
         </div>
       )}
 
-      <section className="card card-pad mt-6 max-w-xl">
+      <section className="card card-pad mx-auto mt-6 max-w-xl">
         <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-600">
           <UserRound size={15} className="text-primary-600" /> Security questions
         </h3>

@@ -17,11 +17,12 @@ const envSchema = z.object({
   MAINTENANCE_MESSAGE: z
     .string()
     .default('The system is currently under maintenance. Please check back shortly.'),
-  // Whether the verify-student endpoint returns the activation code. The demo
-  // shows codes on-screen for convenience; production must deliver them
-  // privately (email/SMS/registrar) so knowing a student number is never
-  // enough to take over an account. Default: on outside production.
   EXPOSE_ACTIVATION_CODES: z.enum(['true', 'false', '1', '0']).optional(),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().default(465),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -51,4 +52,9 @@ export const config = {
   exposeActivationCodes: parsed.data.EXPOSE_ACTIVATION_CODES
     ? ['true', '1'].includes(parsed.data.EXPOSE_ACTIVATION_CODES)
     : parsed.data.NODE_ENV !== 'production',
+  smtpHost: parsed.data.SMTP_HOST,
+  smtpPort: parsed.data.SMTP_PORT,
+  smtpUser: parsed.data.SMTP_USER,
+  smtpPass: parsed.data.SMTP_PASS,
+  smtpFrom: parsed.data.SMTP_FROM,
 };
