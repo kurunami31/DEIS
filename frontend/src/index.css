@@ -111,6 +111,7 @@ select.input {
   background-repeat: no-repeat;
   background-position: right 0.75rem center;
   padding-right: 2.5rem;
+  overflow: hidden;
 }
 .input:focus { border-color: var(--primary-600); box-shadow: 0 0 0 3px rgba(20, 67, 123, 0.12); }
 
