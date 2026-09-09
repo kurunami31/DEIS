@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ShieldCheck, UserCog, UserPlus, KeyRound } from 'lucide-react';
+import { ShieldCheck, UserCog, UserPlus, KeyRound, Pencil, Trash2 } from 'lucide-react';
 import { request } from '../../lib/api.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import { formatDate } from '../../lib/utils.js';
@@ -27,6 +27,14 @@ export default function UsersPage() {
   const [form, setForm] = useState({ fullName: '', email: '', role: 'FACULTY' });
   const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState(null);
+
+  // Edit state
+  const [editing, setEditing] = useState(null);
+  const [editForm, setEditForm] = useState({ fullName: '', email: '', role: 'FACULTY' });
+  const [saving, setSaving] = useState(false);
+
+  // Delete state
+  const [deleting, setDeleting] = useState(null);
 
   const load = () => request({ url: '/admin/users' }).then(setUsers).catch((err) => setError(err.message));
 
@@ -58,6 +66,37 @@ export default function UsersPage() {
     try {
       await request({ method: 'patch', url: `/admin/users/${user.id}/status`, data: { isActive: !user.isActive } });
       toast.success(`${user.fullName} ${user.isActive ? 'deactivated' : 'activated'}.`);
+      load();
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
+  const openEdit = (user) => {
+    setEditing(user);
+    setEditForm({ fullName: user.fullName, email: user.email, role: user.role });
+  };
+
+  const handleEdit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await request({ method: 'patch', url: `/admin/users/${editing.id}`, data: editForm });
+      toast.success(`Account updated for ${editForm.fullName}.`);
+      setEditing(null);
+      load();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await request({ method: 'delete', url: `/admin/users/${deleting.id}` });
+      toast.success(`Account deleted for ${deleting.fullName}.`);
+      setDeleting(null);
       load();
     } catch (err) {
       toast.error(err.message);
@@ -111,9 +150,17 @@ export default function UsersPage() {
                   <td className="text-xs">{formatDate(u.createdAt)}</td>
                   <td className="text-right">
                     {u.role !== 'ADMIN' && (
-                      <button className="btn-secondary !px-3 !py-1 text-xs" onClick={() => toggleStatus(u)}>
-                        {u.isActive ? 'Deactivate' : 'Activate'}
-                      </button>
+                      <div className="flex items-center justify-end gap-1">
+                        <button className="btn-secondary !px-2 !py-1 text-xs" onClick={() => toggleStatus(u)}>
+                          {u.isActive ? 'Deactivate' : 'Activate'}
+                        </button>
+                        <button className="btn-secondary !px-2 !py-1 text-xs" onClick={() => openEdit(u)}>
+                          <Pencil size={13} />
+                        </button>
+                        <button className="btn-secondary !px-2 !py-1 text-xs text-red-600 hover:bg-red-50" onClick={() => setDeleting(u)}>
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -178,6 +225,59 @@ export default function UsersPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {editing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" onClick={() => setEditing(null)}>
+          <div className="w-full max-w-md rounded-[15px] bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="flex items-center gap-2 text-base font-semibold text-slate-800">
+              <Pencil size={17} className="text-primary-600" /> Edit user account
+            </h3>
+            <form onSubmit={handleEdit} className="mt-4 space-y-4">
+              <div>
+                <label className="label">Full name</label>
+                <input className="input" value={editForm.fullName} onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })} required />
+              </div>
+              <div>
+                <label className="label">Email</label>
+                <input className="input" type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} required />
+              </div>
+              <div>
+                <label className="label">Role</label>
+                <CustomSelect
+                  value={editForm.role}
+                  onChange={(val) => setEditForm({ ...editForm, role: val })}
+                  options={ROLES}
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" className="btn-secondary !px-3 !py-1.5 text-xs" onClick={() => setEditing(null)}>Cancel</button>
+                <button className="btn-primary !px-3 !py-1.5 text-xs" disabled={saving}>
+                  {saving ? 'Saving…' : 'Save changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {deleting && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" onClick={() => setDeleting(null)}>
+          <div className="w-full max-w-sm rounded-[15px] bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="flex items-center gap-2 text-base font-semibold text-slate-800">
+              <Trash2 size={17} className="text-red-600" /> Delete user account
+            </h3>
+            <p className="mt-3 text-sm text-slate-600">
+              Are you sure you want to delete <strong>{deleting.fullName}</strong>? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2 pt-4">
+              <button className="btn-secondary !px-3 !py-1.5 text-xs" onClick={() => setDeleting(null)}>Cancel</button>
+              <button className="btn-primary !px-3 !py-1.5 text-xs bg-red-600 hover:bg-red-700" onClick={handleDelete}>
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       )}

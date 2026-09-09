@@ -170,4 +170,56 @@ router.put(
   }),
 );
 
+router.patch(
+  '/users/:id',
+  authenticate,
+  allowRoles('ADMIN'),
+  validate(z.object({ id: z.string().uuid() }), 'params'),
+  validate(
+    z.object({
+      fullName: z.string().min(2).max(100).optional(),
+      email: z.string().email().optional(),
+      role: z.enum(STAFF_ROLES).optional(),
+    }),
+  ),
+  asyncHandler(async (req, res) => {
+    const target = await prisma.user.findUnique({ where: { id: req.params.id } });
+    if (!target) throw new NotFoundError('User not found.');
+    if (target.role === 'ADMIN') {
+      throw new UnprocessableError('The administrator account is system-managed and cannot be edited.');
+    }
+    const data = {};
+    if (req.body.fullName !== undefined) data.fullName = req.body.fullName;
+    if (req.body.email !== undefined) data.email = req.body.email.toLowerCase();
+    if (req.body.role !== undefined) data.role = req.body.role;
+    const user = await prisma.user.update({
+      where: { id: req.params.id },
+      data,
+      select: { id: true, fullName: true, email: true, role: true, isActive: true },
+    });
+    await audit({ actorId: req.user.id, action: 'USER_UPDATED', entityType: 'user', entityId: user.id });
+    return ok(res, { user });
+  }),
+);
+
+router.delete(
+  '/users/:id',
+  authenticate,
+  allowRoles('ADMIN'),
+  validate(z.object({ id: z.string().uuid() }), 'params'),
+  asyncHandler(async (req, res) => {
+    const target = await prisma.user.findUnique({ where: { id: req.params.id } });
+    if (!target) throw new NotFoundError('User not found.');
+    if (target.id === req.user.id) {
+      return res.status(422).json({ error: { code: 'SELF_DELETE', message: 'You cannot delete your own account.' } });
+    }
+    if (target.role === 'ADMIN') {
+      throw new UnprocessableError('The administrator account is system-managed and cannot be deleted.');
+    }
+    await prisma.user.delete({ where: { id: req.params.id } });
+    await audit({ actorId: req.user.id, action: 'USER_DELETED', entityType: 'user', entityId: target.id });
+    return ok(res, { deleted: true });
+  }),
+);
+
 export default router;
