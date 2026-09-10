@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, ClipboardList, ClipboardCheck, FileText, GraduationCap, BookOpen, Inbox,
@@ -150,6 +150,48 @@ export default function AppShell() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
+  // Collapsible sidebar groups: track which labels are expanded
+  const visibleGroups = useMemo(
+    () => NAV_GROUPS.filter((g) => !g.roles || g.roles.includes(user?.role)),
+    [user?.role],
+  );
+  const [expandedGroups, setExpandedGroups] = useState(() => {
+    const initial = new Set();
+    // Non-admin roles: expand all by default (they only have 1-2 groups)
+    // Admin role: start collapsed, auto-expand will open the active route's group
+    if (user?.role !== 'ADMIN') {
+      for (const g of visibleGroups) initial.add(g.label);
+    } else {
+      for (const g of visibleGroups) {
+        if (g.items.some((item) => window.location.pathname === item.to || window.location.pathname.startsWith(item.to + '/'))) {
+          initial.add(g.label);
+        }
+      }
+    }
+    return initial;
+  });
+  const toggleGroup = (label) =>
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
+
+  // Auto-expand the group containing the current route
+  useEffect(() => {
+    for (const g of visibleGroups) {
+      if (g.items.some((item) => location.pathname === item.to || location.pathname.startsWith(item.to + '/'))) {
+        setExpandedGroups((prev) => {
+          if (prev.has(g.label)) return prev;
+          const next = new Set(prev);
+          next.add(g.label);
+          return next;
+        });
+      }
+    }
+  }, [location.pathname, visibleGroups]);
+
   useEffect(() => {
     document.title = `${pageTitle(location.pathname)} · DOrSU DEIS`;
   }, [location.pathname]);
@@ -174,8 +216,6 @@ export default function AppShell() {
   // their menu only offers Sign out (no profile editing / password change).
   const isSystemAccount = user?.role === 'ADMIN' || user?.role === 'REGISTRAR';
   const displayName = isSystemAccount ? user?.role : user?.fullName;
-
-  const visibleGroups = NAV_GROUPS.filter((group) => !group.roles || group.roles.includes(user?.role));
 
   useEffect(() => {
     const onPointerDown = (e) => {
@@ -221,39 +261,43 @@ export default function AppShell() {
       </div>
 
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4">
-        {visibleGroups.map((group) => (
-          <div key={group.label} className={collapsed ? 'flex flex-col items-center' : ''}>
-            {!collapsed && (
-              <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-primary-300">{group.label}</p>
-            )}
-            {collapsed && <div className="mb-2 h-px w-8 bg-white/10" />}
-            <div className="space-y-0.5">
-              {group.items
-                .filter((item) => !item.roles || item.roles.includes(user?.role))
-                .map((item) => (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    onClick={() => {
-                      setMobileOpen(false);
-                      setMenuOpen(false);
-                    }}
-                    title={collapsed ? item.label : undefined}
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                        collapsed ? 'justify-center px-0' : ''
-                      } ${
-                        isActive ? 'bg-white/15 font-semibold text-white' : 'text-primary-100 hover:bg-white/10 hover:text-white'
-                      }`
-                    }
-                  >
-                    <item.icon size={17} className="shrink-0" />
-                    {!collapsed && item.label}
-                  </NavLink>
-                ))}
+        {visibleGroups.map((group) => {
+          const isOpen = expandedGroups.has(group.label);
+          const filteredItems = group.items.filter((item) => !item.roles || item.roles.includes(user?.role));
+          return (
+            <div key={group.label} className={collapsed ? 'flex flex-col items-center' : ''}>
+              {!collapsed ? (
+                <button
+                  onClick={() => toggleGroup(group.label)}
+                  className="mb-1.5 flex w-full items-center gap-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-primary-300 transition-colors hover:text-white"
+                >
+                  <ChevronDown size={12} className={`shrink-0 transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`} />
+                  {group.label}
+                </button>
+              ) : (
+                <div className="mb-2 h-px w-8 bg-white/10" />
+              )}
+              {(!isOpen || collapsed) && (
+                <div className="space-y-0.5">
+                  {filteredItems.map((item) => (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      onClick={() => { setMobileOpen(false); setMenuOpen(false); }}
+                      title={collapsed ? item.label : undefined}
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${collapsed ? 'justify-center px-0' : ''} ${isActive ? 'bg-white/15 font-semibold text-white' : 'text-primary-100 hover:bg-white/10 hover:text-white'}`
+                      }
+                    >
+                      <item.icon size={17} className="shrink-0" />
+                      {!collapsed && item.label}
+                    </NavLink>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </nav>
 
       {!collapsed && (
@@ -289,30 +333,38 @@ export default function AppShell() {
                 </button>
               </div>
               <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4">
-                {visibleGroups.map((group) => (
-                  <div key={group.label}>
-                    <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-primary-300">{group.label}</p>
-                    <div className="space-y-0.5">
-                      {group.items
-                        .filter((item) => !item.roles || item.roles.includes(user?.role))
-                        .map((item) => (
-                          <NavLink
-                            key={item.to}
-                            to={item.to}
-                            onClick={() => setMobileOpen(false)}
-                            className={({ isActive }) =>
-                              `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                                isActive ? 'bg-white/15 font-semibold text-white' : 'text-primary-100 hover:bg-white/10 hover:text-white'
-                              }`
-                            }
-                          >
-                            <item.icon size={17} />
-                            {item.label}
-                          </NavLink>
-                        ))}
+                {visibleGroups.map((group) => {
+                  const isOpen = expandedGroups.has(group.label);
+                  const filteredItems = group.items.filter((item) => !item.roles || item.roles.includes(user?.role));
+                  return (
+                    <div key={group.label}>
+                      <button
+                        onClick={() => toggleGroup(group.label)}
+                        className="mb-1.5 flex w-full items-center gap-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-primary-300 transition-colors hover:text-white"
+                      >
+                        <ChevronDown size={12} className={`shrink-0 transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`} />
+                        {group.label}
+                      </button>
+                      {isOpen && (
+                        <div className="space-y-0.5">
+                          {filteredItems.map((item) => (
+                            <NavLink
+                              key={item.to}
+                              to={item.to}
+                              onClick={() => setMobileOpen(false)}
+                              className={({ isActive }) =>
+                                `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${isActive ? 'bg-white/15 font-semibold text-white' : 'text-primary-100 hover:bg-white/10 hover:text-white'}`
+                              }
+                            >
+                              <item.icon size={17} />
+                              {item.label}
+                            </NavLink>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </nav>
               <div className="border-t border-white/10 p-3">
                 <button onClick={handleLogout} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-primary-100 transition-colors hover:bg-red-500/20 hover:text-white">
