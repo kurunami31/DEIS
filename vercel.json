@@ -1,7 +1,7 @@
 {
   "version": 2,
   "framework": null,
-  "buildCommand": "npm run build && node build-backend.mjs && npx prisma generate --schema backend/prisma/schema.prisma",
+  "buildCommand": "npm run build && node build-backend.mjs && npm --prefix backend exec prisma generate -- --schema backend/prisma/schema.prisma && cp -r backend/node_modules/.prisma node_modules/.prisma",
   "installCommand": "npm install",
   "outputDirectory": "frontend/dist",
   "rewrites": [
@@ -11,7 +11,7 @@
   "functions": {
     "api/index.mjs": {
       "regions": ["sin1"],
-      "includeFiles": "node_modules/.prisma/**"
+      "includeFiles": "node_modules/{@prisma,.prisma}/**"
     }
   }
 }

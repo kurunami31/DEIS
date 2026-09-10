@@ -33,6 +33,9 @@ Thumbs.db
 # Uploads
 uploads/
 
+# Build artifacts
+api/app.mjs
+
 # Local media assets too large for the repo (host externally)
 *.mov
 *.mp4
