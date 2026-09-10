@@ -73,6 +73,7 @@ model User {
   passwordHistory   UserPasswordHistory[]
   universityActivities UniversityActivity[]
   emailOtps            EmailOtp[]
+  counselingSessions CounselingSession[]
 
   @@index([role])
 }
@@ -184,6 +185,8 @@ model StudentProfile {
   grades             GradeRecord[]
   clearances         StudentClearance[]
   medicalRecords     MedicalRecord[]
+  counselingSessions CounselingSession[]
+  assessments        StudentAssessment[]
 }
 
 model Campus {
@@ -489,4 +492,67 @@ enum MedicalTestType {
   HEARING_TEST
   CHEST_XRAY
   BLOOD_TEST
+}
+
+// ---------------------------------------------------------------------------
+// Office of Guidance and Counseling (OSCD) — Sessions & Assessments
+// ---------------------------------------------------------------------------
+
+model CounselingSession {
+  id              String          @id @default(uuid())
+  studentId       String
+  counselorId     String
+  type            CounselingType
+  concern         String
+  notes           String?
+  recommendation  String?
+  status          SessionStatus   @default(SCHEDULED)
+  scheduledAt     DateTime
+  completedAt     DateTime?
+  createdAt       DateTime        @default(now())
+
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  counselor User           @relation(fields: [counselorId], references: [id])
+
+  @@index([studentId])
+  @@index([counselorId])
+  @@index([status])
+}
+
+model StudentAssessment {
+  id              String          @id @default(uuid())
+  studentId       String
+  type            AssessmentType
+  score           Int?
+  result          String?
+  interpretation  String?
+  assessedAt      DateTime
+  assessedBy      String?
+  createdAt       DateTime        @default(now())
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId, type])
+  @@index([assessedAt])
+}
+
+enum CounselingType {
+  ACADEMIC
+  PERSONAL
+  CAREER
+  GROUP
+}
+
+enum SessionStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum AssessmentType {
+  PSYCHOLOGICAL
+  PERSONALITY
+  APTITUDE
+  INTEREST
 }

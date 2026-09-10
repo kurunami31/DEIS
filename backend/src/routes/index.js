@@ -12,6 +12,7 @@ import calendarRoutes from '../modules/calendar/calendar.routes.js';
 import chatRoutes from '../modules/chat/chat.routes.js';
 import otpRoutes from '../modules/otp/otp.routes.js';
 import ohsRoutes from '../modules/ohs/ohs.routes.js';
+import oscdRoutes from '../modules/oscd/oscd.routes.js';
 
 export const routes = Router();
 
@@ -28,3 +29,4 @@ routes.use('/calendar', calendarRoutes);
 routes.use('/chat', chatRoutes);
 routes.use('/otp', otpRoutes);
 routes.use('/ohs', ohsRoutes);
+routes.use('/oscd', oscdRoutes);

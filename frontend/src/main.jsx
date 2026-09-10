@@ -39,6 +39,10 @@ import OhsDashboard from './pages/ohs/OhsDashboard.jsx';
 import MedicalRecords from './pages/ohs/MedicalRecords.jsx';
 import DrugTestPage from './pages/ohs/DrugTestPage.jsx';
 import MedicalTestPage from './pages/ohs/MedicalTestPage.jsx';
+import OscdDashboard from './pages/oscd/OscdDashboard.jsx';
+import CounselingSessions from './pages/oscd/CounselingSessions.jsx';
+import StudentAssessments from './pages/oscd/StudentAssessments.jsx';
+import AtRiskStudents from './pages/oscd/AtRiskStudents.jsx';
 import './index.css';
 
 function RequireAuth({ roles, children }) {
@@ -141,6 +145,11 @@ export default function App() {
                 <Route path="ohs/records" element={<RequireAuth roles={['OHS', 'ADMIN', 'REGISTRAR']}><MedicalRecords /></RequireAuth>} />
                 <Route path="ohs/drug-test" element={<RequireAuth roles={['OHS', 'ADMIN', 'REGISTRAR']}><DrugTestPage /></RequireAuth>} />
                 <Route path="ohs/medical-test" element={<RequireAuth roles={['OHS', 'ADMIN', 'REGISTRAR']}><MedicalTestPage /></RequireAuth>} />
+
+                <Route path="oscd" element={<RequireAuth roles={['OSCD', 'ADMIN', 'REGISTRAR']}><OscdDashboard /></RequireAuth>} />
+                <Route path="oscd/sessions" element={<RequireAuth roles={['OSCD', 'ADMIN', 'REGISTRAR']}><CounselingSessions /></RequireAuth>} />
+                <Route path="oscd/assessments" element={<RequireAuth roles={['OSCD', 'ADMIN', 'REGISTRAR']}><StudentAssessments /></RequireAuth>} />
+                <Route path="oscd/at-risk" element={<RequireAuth roles={['OSCD', 'ADMIN', 'REGISTRAR']}><AtRiskStudents /></RequireAuth>} />
 
                 <Route path="review" element={<RequireAuth roles={['REGISTRAR', 'ADMISSION']}><RequestsPage /></RequireAuth>} />
                 <Route path="students" element={<RequireAuth roles={['REGISTRAR', 'ADMIN', 'ADMISSION']}><StudentsPage /></RequireAuth>} />

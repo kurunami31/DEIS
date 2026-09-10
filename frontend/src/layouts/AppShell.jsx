@@ -45,6 +45,16 @@ const NAV_GROUPS = [
     ],
   },
   {
+    label: 'Guidance & Counseling',
+    roles: ['OSCD', 'ADMIN', 'REGISTRAR'],
+    items: [
+      { to: '/oscd', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/oscd/sessions', label: 'Counseling Sessions', icon: FileText },
+      { to: '/oscd/assessments', label: 'Student Assessments', icon: FileText },
+      { to: '/oscd/at-risk', label: 'At-Risk Students', icon: FileText },
+    ],
+  },
+  {
     label: 'Registration',
     roles: ['REGISTRAR', 'ADMIN', 'ADMISSION'],
     items: [
