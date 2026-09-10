@@ -55,6 +55,16 @@ const NAV_GROUPS = [
     ],
   },
   {
+    label: 'Student Affairs',
+    roles: ['OSA', 'ADMIN'],
+    items: [
+      { to: '/osa', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/osa/orgs', label: 'Organizations', icon: Users },
+      { to: '/osa/services', label: 'Community Service', icon: FileText },
+      { to: '/osa/disciplinary', label: 'Disciplinary', icon: AlertTriangle },
+    ],
+  },
+  {
     label: 'Registration',
     roles: ['REGISTRAR', 'ADMIN', 'ADMISSION'],
     items: [

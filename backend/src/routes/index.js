@@ -13,6 +13,7 @@ import chatRoutes from '../modules/chat/chat.routes.js';
 import otpRoutes from '../modules/otp/otp.routes.js';
 import ohsRoutes from '../modules/ohs/ohs.routes.js';
 import oscdRoutes from '../modules/oscd/oscd.routes.js';
+import osaRoutes from '../modules/osa/osa.routes.js';
 
 export const routes = Router();
 
@@ -30,3 +31,4 @@ routes.use('/chat', chatRoutes);
 routes.use('/otp', otpRoutes);
 routes.use('/ohs', ohsRoutes);
 routes.use('/oscd', oscdRoutes);
+routes.use('/osa', osaRoutes);

@@ -187,6 +187,9 @@ model StudentProfile {
   medicalRecords     MedicalRecord[]
   counselingSessions CounselingSession[]
   assessments        StudentAssessment[]
+  orgMemberships     StudentOrgMember[]
+  communityServices  CommunityService[]
+  disciplinaryRecords DisciplinaryRecord[]
 }
 
 model Campus {
@@ -555,4 +558,80 @@ enum AssessmentType {
   PERSONALITY
   APTITUDE
   INTEREST
+}
+
+// ---------------------------------------------------------------------------
+// Office of Student Affairs (OSA) — Orgs, Community Service, Disciplinary
+// ---------------------------------------------------------------------------
+
+model StudentOrg {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  adviser     String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  members StudentOrgMember[]
+}
+
+model StudentOrgMember {
+  id        String    @id @default(uuid())
+  studentId String
+  orgId     String
+  position  String?
+  joinedAt  DateTime  @default(now())
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  org     StudentOrg     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, orgId])
+  @@index([orgId])
+}
+
+model CommunityService {
+  id          String          @id @default(uuid())
+  studentId   String
+  title       String
+  hours       Int             @default(0)
+  date        DateTime
+  status      ServiceStatus   @default(PENDING)
+  verifiedBy  String?
+  notes       String?
+  createdAt   DateTime        @default(now())
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([status])
+}
+
+model DisciplinaryRecord {
+  id          String              @id @default(uuid())
+  studentId   String
+  offense     OffenseType
+  description String
+  action      String
+  dateIssued  DateTime
+  issuedBy    String?
+  isResolved   Boolean             @default(false)
+  resolvedAt  DateTime?
+  createdAt   DateTime            @default(now())
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([offense])
+}
+
+enum ServiceStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum OffenseType {
+  MINOR
+  MODERATE
+  MAJOR
 }

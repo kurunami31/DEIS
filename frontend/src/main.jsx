@@ -43,6 +43,10 @@ import OscdDashboard from './pages/oscd/OscdDashboard.jsx';
 import CounselingSessions from './pages/oscd/CounselingSessions.jsx';
 import StudentAssessments from './pages/oscd/StudentAssessments.jsx';
 import AtRiskStudents from './pages/oscd/AtRiskStudents.jsx';
+import OsaDashboard from './pages/osa/OsaDashboard.jsx';
+import StudentOrgs from './pages/osa/StudentOrgs.jsx';
+import CommunityServices from './pages/osa/CommunityServices.jsx';
+import DisciplinaryRecords from './pages/osa/DisciplinaryRecords.jsx';
 import './index.css';
 
 function RequireAuth({ roles, children }) {
@@ -150,6 +154,11 @@ export default function App() {
                 <Route path="oscd/sessions" element={<RequireAuth roles={['OSCD', 'ADMIN', 'REGISTRAR']}><CounselingSessions /></RequireAuth>} />
                 <Route path="oscd/assessments" element={<RequireAuth roles={['OSCD', 'ADMIN', 'REGISTRAR']}><StudentAssessments /></RequireAuth>} />
                 <Route path="oscd/at-risk" element={<RequireAuth roles={['OSCD', 'ADMIN', 'REGISTRAR']}><AtRiskStudents /></RequireAuth>} />
+
+                <Route path="osa" element={<RequireAuth roles={['OSA', 'ADMIN']}><OsaDashboard /></RequireAuth>} />
+                <Route path="osa/orgs" element={<RequireAuth roles={['OSA', 'ADMIN']}><StudentOrgs /></RequireAuth>} />
+                <Route path="osa/services" element={<RequireAuth roles={['OSA', 'ADMIN']}><CommunityServices /></RequireAuth>} />
+                <Route path="osa/disciplinary" element={<RequireAuth roles={['OSA', 'ADMIN']}><DisciplinaryRecords /></RequireAuth>} />
 
                 <Route path="review" element={<RequireAuth roles={['REGISTRAR', 'ADMISSION']}><RequestsPage /></RequireAuth>} />
                 <Route path="students" element={<RequireAuth roles={['REGISTRAR', 'ADMIN', 'ADMISSION']}><StudentsPage /></RequireAuth>} />
