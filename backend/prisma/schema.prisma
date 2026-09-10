@@ -76,6 +76,7 @@ model User {
   counselingSessions CounselingSession[]
   evaluations        FacultyEvaluation[]
   trainings          TrainingRecord[]
+  reviewedApplications AdmissionApplication[]
 
   @@index([role])
 }
@@ -193,6 +194,7 @@ model StudentProfile {
   communityServices  CommunityService[]
   disciplinaryRecords DisciplinaryRecord[]
   payments            Payment[]
+  evaluations         FacultyEvaluation[]
 }
 
 model Campus {
@@ -229,6 +231,7 @@ model Program {
   faculty  Faculty  @relation(fields: [facultyId], references: [id])
   subjects Subject[]
   students StudentProfile[]
+  admissionApplications AdmissionApplication[]
 }
 
 model Subject {
@@ -661,7 +664,7 @@ model FacultyEvaluation {
   faculty  User            @relation(fields: [facultyId], references: [id])
   student  StudentProfile? @relation(fields: [studentId], references: [id], onDelete: SetNull)
   section  Section?        @relation(fields: [sectionId], references: [id], onDelete: SetNull)
-  term     AcademicTerm    @relation(fields: [termId], references: [id])
+  term     Term           @relation(fields: [termId], references: [id])
 
   @@index([facultyId, termId])
   @@index([category])
