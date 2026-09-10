@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, ClipboardList, FileText, GraduationCap, BookOpen, Inbox,
+  LayoutDashboard, ClipboardList, ClipboardCheck, FileText, GraduationCap, BookOpen, Inbox,
   Users, LayoutGrid, BarChart3, UserCog, CalendarDays, Database, Activity, FlaskConical,
-  UserCircle, LogOut, Menu, X, Home, BadgeCheck, ChevronDown, UserRound, KeyRound,
+  UserCircle, LogOut, Menu, X, Home, BadgeCheck, ChevronDown, UserRound, KeyRound, AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Logo } from '../components/Logo.jsx';
