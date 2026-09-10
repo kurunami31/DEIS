@@ -118,22 +118,22 @@ router.get(
       where: { userId: req.user.id },
       include: {
         program: true,
-        enrollments: { include: { section: { include: { subject: true, term: true } } }, orderBy: { createdAt: 'desc' } },
+        enrollmentRequests: { include: { items: { include: { section: { include: { subject: true, term: true } } } }, term: true }, orderBy: { submittedAt: 'desc' } },
         grades: { include: { section: { include: { subject: true } } } },
         clearances: { include: { term: true } },
       },
     });
     if (!student) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Student profile not found' } });
 
-    const activeEnrollment = student.enrollments.find((e) => e.status === 'APPROVED' || e.status === 'PENDING');
+    const activeEnrollment = student.enrollmentRequests.find((e) => e.status === 'APPROVED' || e.status === 'PENDING');
     const recentGrades = student.grades.slice(0, 5);
     const avgGrade = student.grades.filter((g) => g.grade != null).reduce((s, g) => s + Number(g.grade), 0) / (student.grades.filter((g) => g.grade != null).length || 1);
     const latestClearance = student.clearances[0];
 
     return ok(res, {
       student: { id: student.id, studentNo: student.studentNo, firstName: student.firstName, lastName: student.lastName, program: student.program, yearLevel: student.yearLevel },
-      activeEnrollment: activeEnrollment ? { status: activeEnrollment.status, term: activeEnrollment.section?.term } : null,
-      totalEnrolled: student.enrollments.filter((e) => e.status === 'APPROVED').length,
+      activeEnrollment: activeEnrollment ? { status: activeEnrollment.status, term: activeEnrollment.term } : null,
+      totalEnrolled: student.enrollmentRequests.filter((e) => e.status === 'APPROVED').length,
       totalGrades: student.grades.length,
       avgGrade: Math.round(avgGrade * 100) / 100,
       recentGrades,
