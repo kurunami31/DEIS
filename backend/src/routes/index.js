@@ -15,6 +15,7 @@ import ohsRoutes from '../modules/ohs/ohs.routes.js';
 import oscdRoutes from '../modules/oscd/oscd.routes.js';
 import osaRoutes from '../modules/osa/osa.routes.js';
 import faasgRoutes from '../modules/faasg/faasg.routes.js';
+import cashieringRoutes from '../modules/cashiering/cashiering.routes.js';
 
 export const routes = Router();
 
@@ -34,3 +35,4 @@ routes.use('/ohs', ohsRoutes);
 routes.use('/oscd', oscdRoutes);
 routes.use('/osa', osaRoutes);
 routes.use('/faasg', faasgRoutes);
+routes.use('/cashiering', cashieringRoutes);

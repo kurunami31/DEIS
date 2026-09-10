@@ -74,6 +74,15 @@ const NAV_GROUPS = [
     ],
   },
   {
+    label: 'Cashiering',
+    roles: ['CASHIERING', 'ADMIN'],
+    items: [
+      { to: '/cashiering', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/cashiering/payments', label: 'Payments', icon: FileText },
+      { to: '/cashiering/fees', label: 'Fee Structures', icon: FileText },
+    ],
+  },
+  {
     label: 'Registration',
     roles: ['REGISTRAR', 'ADMIN', 'ADMISSION'],
     items: [

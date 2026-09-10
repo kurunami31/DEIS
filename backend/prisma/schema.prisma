@@ -192,6 +192,7 @@ model StudentProfile {
   orgMemberships     StudentOrgMember[]
   communityServices  CommunityService[]
   disciplinaryRecords DisciplinaryRecord[]
+  payments            Payment[]
 }
 
 model Campus {
@@ -274,6 +275,8 @@ model Term {
   requests EnrollmentRequest[]
   clearances StudentClearance[]
   evaluations FacultyEvaluation[]
+  feeStructures FeeStructure[]
+  payments Payment[]
 
   @@index([isActive])
 }
@@ -692,4 +695,81 @@ enum TrainingStatus {
   UPCOMING
   COMPLETED
   CANCELLED
+}
+
+// ---------------------------------------------------------------------------
+// Cashiering — Fees, Payments, Receipts
+// ---------------------------------------------------------------------------
+
+model FeeStructure {
+  id          String   @id @default(uuid())
+  name        String
+  amount      Decimal  @db.Decimal(10, 2)
+  termId      String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  term        Term?       @relation(fields: [termId], references: [id], onDelete: SetNull)
+  lineItems   FeeLineItem[]
+
+  @@index([termId])
+}
+
+model FeeLineItem {
+  id              String   @id @default(uuid())
+  feeStructureId  String
+  description     String
+  amount          Decimal  @db.Decimal(10, 2)
+
+  feeStructure FeeStructure @relation(fields: [feeStructureId], references: [id], onDelete: Cascade)
+
+  @@index([feeStructureId])
+}
+
+model Payment {
+  id          String        @id @default(uuid())
+  studentId   String
+  termId      String?
+  amount      Decimal       @db.Decimal(10, 2)
+  method      PaymentMethod
+  reference   String?
+  notes       String?
+  paidAt      DateTime      @default(now())
+  createdBy   String
+
+  student     StudentProfile @relation(fields: [studentId], references: [id])
+  term        Term?          @relation(fields: [termId], references: [id], onDelete: SetNull)
+  lineItems   PaymentLineItem[]
+  receipt     Receipt?
+
+  @@index([studentId])
+  @@index([termId])
+}
+
+model PaymentLineItem {
+  id        String   @id @default(uuid())
+  paymentId String
+  label     String
+  amount    Decimal  @db.Decimal(10, 2)
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId])
+}
+
+model Receipt {
+  id        String   @id @default(uuid())
+  paymentId String   @unique
+  number    String   @unique
+  issuedAt  DateTime @default(now())
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  GCASH
+  MAYA
+  CHECK
 }
