@@ -53,6 +53,9 @@ import TrainingRecords from './pages/faasg/TrainingRecords.jsx';
 import CashierDashboard from './pages/cashiering/CashierDashboard.jsx';
 import Payments from './pages/cashiering/Payments.jsx';
 import FeeStructures from './pages/cashiering/FeeStructures.jsx';
+import AccountingDashboard from './pages/accounting/AccountingDashboard.jsx';
+import JournalEntries from './pages/accounting/JournalEntries.jsx';
+import GeneralLedger from './pages/accounting/GeneralLedger.jsx';
 import './index.css';
 
 function RequireAuth({ roles, children }) {
@@ -173,6 +176,10 @@ export default function App() {
                 <Route path="cashiering" element={<RequireAuth roles={['CASHIERING', 'ADMIN']}><CashierDashboard /></RequireAuth>} />
                 <Route path="cashiering/payments" element={<RequireAuth roles={['CASHIERING', 'ADMIN']}><Payments /></RequireAuth>} />
                 <Route path="cashiering/fees" element={<RequireAuth roles={['CASHIERING', 'ADMIN']}><FeeStructures /></RequireAuth>} />
+
+                <Route path="accounting" element={<RequireAuth roles={['ACCOUNTING', 'ADMIN']}><AccountingDashboard /></RequireAuth>} />
+                <Route path="accounting/journals" element={<RequireAuth roles={['ACCOUNTING', 'ADMIN']}><JournalEntries /></RequireAuth>} />
+                <Route path="accounting/ledger" element={<RequireAuth roles={['ACCOUNTING', 'ADMIN']}><GeneralLedger /></RequireAuth>} />
 
                 <Route path="review" element={<RequireAuth roles={['REGISTRAR', 'ADMISSION']}><RequestsPage /></RequireAuth>} />
                 <Route path="students" element={<RequireAuth roles={['REGISTRAR', 'ADMIN', 'ADMISSION']}><StudentsPage /></RequireAuth>} />

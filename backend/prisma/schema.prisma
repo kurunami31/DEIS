@@ -773,3 +773,54 @@ enum PaymentMethod {
   MAYA
   CHECK
 }
+
+// ---------------------------------------------------------------------------
+// Accounting — Journal Entries, Chart of Accounts, Ledger
+// ---------------------------------------------------------------------------
+
+model ChartOfAccount {
+  id        String  @id @default(uuid())
+  code      String  @unique
+  name      String
+  type      AccountType
+  isActive  Boolean @default(true)
+
+  entries LedgerEntry[]
+
+  @@index([type])
+}
+
+model JournalEntry {
+  id          String    @id @default(uuid())
+  date        DateTime
+  description String
+  reference   String?
+  createdBy   String
+  createdAt   DateTime @default(now())
+
+  lines LedgerEntry[]
+
+  @@index([date])
+}
+
+model LedgerEntry {
+  id            String    @id @default(uuid())
+  journalEntryId String
+  accountId     String
+  debit         Decimal   @db.Decimal(12, 2) @default(0)
+  credit        Decimal   @db.Decimal(12, 2) @default(0)
+
+  journalEntry JournalEntry  @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  account      ChartOfAccount @relation(fields: [accountId], references: [id])
+
+  @@index([journalEntryId])
+  @@index([accountId])
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}

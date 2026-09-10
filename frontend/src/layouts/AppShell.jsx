@@ -83,6 +83,15 @@ const NAV_GROUPS = [
     ],
   },
   {
+    label: 'Accounting',
+    roles: ['ACCOUNTING', 'ADMIN'],
+    items: [
+      { to: '/accounting', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/accounting/journals', label: 'Journal Entries', icon: FileText },
+      { to: '/accounting/ledger', label: 'General Ledger', icon: FileText },
+    ],
+  },
+  {
     label: 'Registration',
     roles: ['REGISTRAR', 'ADMIN', 'ADMISSION'],
     items: [
