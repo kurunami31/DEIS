@@ -824,3 +824,36 @@ enum AccountType {
   REVENUE
   EXPENSE
 }
+
+// ---------------------------------------------------------------------------
+// Admission — Application Review
+// ---------------------------------------------------------------------------
+
+model AdmissionApplication {
+  id              String            @id @default(uuid())
+  firstName       String
+  lastName        String
+  email           String
+  phone           String?
+  programId       String
+  incomingYear    Int               @default(1)
+  previousSchool  String?
+  status          AdmissionStatus   @default(PENDING)
+  reviewedById    String?
+  reviewedAt      DateTime?
+  remarks         String?
+  createdAt       DateTime          @default(now())
+
+  program    Program?  @relation(fields: [programId], references: [id], onDelete: SetNull)
+  reviewedBy User?     @relation(fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([programId])
+}
+
+enum AdmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  WAITLISTED
+}

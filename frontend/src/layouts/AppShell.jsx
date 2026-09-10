@@ -92,6 +92,14 @@ const NAV_GROUPS = [
     ],
   },
   {
+    label: 'Admission',
+    roles: ['ADMISSION', 'ADMIN'],
+    items: [
+      { to: '/admission', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/admission/applications', label: 'Applications', icon: ClipboardList },
+    ],
+  },
+  {
     label: 'Registration',
     roles: ['REGISTRAR', 'ADMIN', 'ADMISSION'],
     items: [

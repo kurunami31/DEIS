@@ -17,6 +17,7 @@ import osaRoutes from '../modules/osa/osa.routes.js';
 import faasgRoutes from '../modules/faasg/faasg.routes.js';
 import cashieringRoutes from '../modules/cashiering/cashiering.routes.js';
 import accountingRoutes from '../modules/accounting/accounting.routes.js';
+import admissionRoutes from '../modules/admission/admission.routes.js';
 
 export const routes = Router();
 
@@ -38,3 +39,4 @@ routes.use('/osa', osaRoutes);
 routes.use('/faasg', faasgRoutes);
 routes.use('/cashiering', cashieringRoutes);
 routes.use('/accounting', accountingRoutes);
+routes.use('/admission', admissionRoutes);
