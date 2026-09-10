@@ -1,4 +1,4 @@
-import { createApp } from '../backend/src/app.js';
+import { createApp } from './app.mjs';
 
 let app;
 

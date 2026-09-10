@@ -68,7 +68,7 @@ router.get('/evaluations', authenticate, allowRoles('FAASG', 'ADMIN'), validate(
 }));
 
 router.post('/evaluations', authenticate, allowRoles('FAASG', 'ADMIN'), validate(evalCreateSchema), asyncHandler(async (req, res) => {
-  const eval = await prisma.facultyEvaluation.create({
+  const evaluation = await prisma.facultyEvaluation.create({
     data: {
       facultyId: req.body.facultyId,
       studentId: req.body.studentId || null,
@@ -79,8 +79,8 @@ router.post('/evaluations', authenticate, allowRoles('FAASG', 'ADMIN'), validate
       category: req.body.category,
     },
   });
-  await audit({ actorId: req.user.id, action: 'FACULTY_EVAL_CREATED', entityType: 'faculty_evaluation', entityId: eval.id });
-  return created(res, eval);
+  await audit({ actorId: req.user.id, action: 'FACULTY_EVAL_CREATED', entityType: 'faculty_evaluation', entityId: evaluation.id });
+  return created(res, evaluation);
 }));
 
 router.delete('/evaluations/:id', authenticate, allowRoles('FAASG', 'ADMIN'), validate(z.object({ id: z.string().uuid() }), 'params'), asyncHandler(async (req, res) => {
