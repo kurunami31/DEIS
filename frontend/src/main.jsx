@@ -32,6 +32,8 @@ import ClearancePrintPage from './pages/student/ClearancePrintPage.jsx';
 import EnrollmentFormPrintPage from './pages/student/EnrollmentFormPrintPage.jsx';
 import ClearanceReviewPage from './pages/registrar/ClearanceReviewPage.jsx';
 import TranscriptPage from './pages/registrar/TranscriptPage.jsx';
+import FacultyDashboard from './pages/faculty/FacultyDashboard.jsx';
+import StudentDashboard from './pages/student-dash/StudentDashboard.jsx';
 import CalendarPage from './pages/CalendarPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
@@ -190,6 +192,9 @@ export default function App() {
                 <Route path="review" element={<RequireAuth roles={['REGISTRAR', 'ADMISSION']}><RequestsPage /></RequireAuth>} />
                 <Route path="students" element={<RequireAuth roles={['REGISTRAR', 'ADMIN', 'ADMISSION']}><StudentsPage /></RequireAuth>} />
                 <Route path="transcript" element={<RequireAuth roles={['REGISTRAR', 'ADMIN']}><TranscriptPage /></RequireAuth>} />
+
+                <Route path="faculty-home" element={<RequireAuth roles={['FACULTY']}><FacultyDashboard /></RequireAuth>} />
+                <Route path="student-home" element={<RequireAuth roles={['STUDENT']}><StudentDashboard /></RequireAuth>} />
                 <Route path="sections" element={<RequireAuth roles={['REGISTRAR', 'ADMIN']}><SectionsPage /></RequireAuth>} />
                 <Route path="analytics" element={<RequireAuth roles={['REGISTRAR', 'ADMIN']}><AnalyticsPage /></RequireAuth>} />
 

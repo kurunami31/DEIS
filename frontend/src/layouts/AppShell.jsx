@@ -23,10 +23,19 @@ const NAV_GROUPS = [
     label: 'Student Services',
     roles: ['STUDENT'],
     items: [
-      { to: '/enroll', label: 'Enrollment', icon: ClipboardList },
-      { to: '/requests', label: 'My Requests', icon: FileText },
-      { to: '/grades', label: 'Grades', icon: GraduationCap },
-      { to: '/clearance', label: 'Clearance', icon: BadgeCheck },
+      { to: '/student-home', label: 'Dashboard', icon: Home },
+      { to: '/enroll', label: 'Enroll', icon: BookOpen },
+      { to: '/my-requests', label: 'My Requests', icon: Inbox },
+      { to: '/my-grades', label: 'My Grades', icon: ClipboardCheck },
+      { to: '/clearance', label: 'Clearance', icon: Award },
+    ],
+  },
+  {
+    label: 'Teaching',
+    roles: ['FACULTY'],
+    items: [
+      { to: '/faculty-home', label: 'Dashboard', icon: Home },
+      { to: '/sections', label: 'My Sections', icon: LayoutGrid },
     ],
   },
   {

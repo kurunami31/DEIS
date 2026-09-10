@@ -8,6 +8,31 @@ import { audit } from '../../lib/audit.js';
 
 const router = Router();
 
+// Faculty dashboard
+router.get(
+  '/dashboard',
+  authenticate,
+  allowRoles('FACULTY'),
+  asyncHandler(async (req, res) => {
+    const sections = await prisma.section.findMany({
+      where: { facultyId: req.user.id },
+      include: {
+        subject: true,
+        term: true,
+        _count: { select: { items: true } },
+        grades: { select: { id: true, grade: true, status: true } },
+      },
+    });
+
+    const totalStudents = sections.reduce((s, sec) => s + sec._count.items, 0);
+    const totalSections = sections.length;
+    const gradedCount = sections.reduce((s, sec) => s + sec.grades.filter((g) => g.grade != null).length, 0);
+    const passedCount = sections.reduce((s, sec) => s + sec.grades.filter((g) => g.status === 'PASSED').length, 0);
+
+    return ok(res, { totalSections, totalStudents, gradedCount, passedCount, sections });
+  }),
+);
+
 const sectionListQuery = z.object({
   termId: z.string().uuid().optional(),
   subjectId: z.string().uuid().optional(),
