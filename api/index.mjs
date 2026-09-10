@@ -1,4 +1,4 @@
-import { createApp } from './app.mjs';
+import { createApp } from '../backend/src/app.js';
 
 let app;
 
@@ -8,8 +8,13 @@ function getApp() {
 }
 
 export default async function handler(req, res) {
-  const expressApp = getApp();
-  return expressApp(req, res);
+  try {
+    const expressApp = getApp();
+    return expressApp(req, res);
+  } catch (err) {
+    console.error('Handler error:', err);
+    res.status(500).json({ error: err.message, stack: err.stack });
+  }
 }
 
 export const config = {
