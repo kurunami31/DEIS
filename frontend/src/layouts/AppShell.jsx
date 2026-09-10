@@ -106,6 +106,7 @@ const NAV_GROUPS = [
       { to: '/review', label: 'Enrollment Requests', icon: Inbox, roles: ['REGISTRAR', 'ADMISSION'] },
       { to: '/students', label: 'Students', icon: Users },
       { to: '/sections', label: 'Sections', icon: LayoutGrid, roles: ['REGISTRAR', 'ADMIN'] },
+      { to: '/transcript', label: 'Transcripts', icon: FileText, roles: ['REGISTRAR', 'ADMIN'] },
       { to: '/analytics', label: 'Analytics', icon: BarChart3, roles: ['REGISTRAR', 'ADMIN'] },
     ],
   },
