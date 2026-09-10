@@ -65,6 +65,15 @@ const NAV_GROUPS = [
     ],
   },
   {
+    label: 'Faculty & Staff',
+    roles: ['FAASG', 'ADMIN'],
+    items: [
+      { to: '/faasg', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/faasg/evaluations', label: 'Evaluations', icon: ClipboardCheck },
+      { to: '/faasg/trainings', label: 'Training Records', icon: FileText },
+    ],
+  },
+  {
     label: 'Registration',
     roles: ['REGISTRAR', 'ADMIN', 'ADMISSION'],
     items: [

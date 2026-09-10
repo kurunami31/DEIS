@@ -74,6 +74,8 @@ model User {
   universityActivities UniversityActivity[]
   emailOtps            EmailOtp[]
   counselingSessions CounselingSession[]
+  evaluations        FacultyEvaluation[]
+  trainings          TrainingRecord[]
 
   @@index([role])
 }
@@ -271,6 +273,7 @@ model Term {
   sections Section[]
   requests EnrollmentRequest[]
   clearances StudentClearance[]
+  evaluations FacultyEvaluation[]
 
   @@index([isActive])
 }
@@ -330,6 +333,7 @@ model Section {
 
   items  EnrollmentItem[]
   grades GradeRecord[]
+  evaluations FacultyEvaluation[]
 
   @@index([termId, subjectId])
 }
@@ -634,4 +638,58 @@ enum OffenseType {
   MINOR
   MODERATE
   MAJOR
+}
+
+// ---------------------------------------------------------------------------
+// Faculty and Staff Affairs (FAASG) — Evaluations & Training
+// ---------------------------------------------------------------------------
+
+model FacultyEvaluation {
+  id              String   @id @default(uuid())
+  facultyId       String
+  studentId       String?
+  sectionId       String?
+  termId          String
+  rating          Int
+  comments        String?
+  category        EvalCategory
+  evaluatedAt     DateTime @default(now())
+
+  faculty  User            @relation(fields: [facultyId], references: [id])
+  student  StudentProfile? @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  section  Section?        @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  term     AcademicTerm    @relation(fields: [termId], references: [id])
+
+  @@index([facultyId, termId])
+  @@index([category])
+}
+
+model TrainingRecord {
+  id          String   @id @default(uuid())
+  facultyId   String
+  title       String
+  provider    String?
+  hours       Int      @default(0)
+  date        DateTime
+  status      TrainingStatus @default(UPCOMING)
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  faculty User @relation(fields: [facultyId], references: [id])
+
+  @@index([facultyId])
+  @@index([status])
+}
+
+enum EvalCategory {
+  TEACHING
+  SERVICE
+  RESEARCH
+  EXTENSION
+}
+
+enum TrainingStatus {
+  UPCOMING
+  COMPLETED
+  CANCELLED
 }

@@ -47,6 +47,9 @@ import OsaDashboard from './pages/osa/OsaDashboard.jsx';
 import StudentOrgs from './pages/osa/StudentOrgs.jsx';
 import CommunityServices from './pages/osa/CommunityServices.jsx';
 import DisciplinaryRecords from './pages/osa/DisciplinaryRecords.jsx';
+import FaasgDashboard from './pages/faasg/FaasgDashboard.jsx';
+import FacultyEvaluations from './pages/faasg/FacultyEvaluations.jsx';
+import TrainingRecords from './pages/faasg/TrainingRecords.jsx';
 import './index.css';
 
 function RequireAuth({ roles, children }) {
@@ -159,6 +162,10 @@ export default function App() {
                 <Route path="osa/orgs" element={<RequireAuth roles={['OSA', 'ADMIN']}><StudentOrgs /></RequireAuth>} />
                 <Route path="osa/services" element={<RequireAuth roles={['OSA', 'ADMIN']}><CommunityServices /></RequireAuth>} />
                 <Route path="osa/disciplinary" element={<RequireAuth roles={['OSA', 'ADMIN']}><DisciplinaryRecords /></RequireAuth>} />
+
+                <Route path="faasg" element={<RequireAuth roles={['FAASG', 'ADMIN']}><FaasgDashboard /></RequireAuth>} />
+                <Route path="faasg/evaluations" element={<RequireAuth roles={['FAASG', 'ADMIN']}><FacultyEvaluations /></RequireAuth>} />
+                <Route path="faasg/trainings" element={<RequireAuth roles={['FAASG', 'ADMIN']}><TrainingRecords /></RequireAuth>} />
 
                 <Route path="review" element={<RequireAuth roles={['REGISTRAR', 'ADMISSION']}><RequestsPage /></RequireAuth>} />
                 <Route path="students" element={<RequireAuth roles={['REGISTRAR', 'ADMIN', 'ADMISSION']}><StudentsPage /></RequireAuth>} />

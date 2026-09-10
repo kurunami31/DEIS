@@ -14,6 +14,7 @@ import otpRoutes from '../modules/otp/otp.routes.js';
 import ohsRoutes from '../modules/ohs/ohs.routes.js';
 import oscdRoutes from '../modules/oscd/oscd.routes.js';
 import osaRoutes from '../modules/osa/osa.routes.js';
+import faasgRoutes from '../modules/faasg/faasg.routes.js';
 
 export const routes = Router();
 
@@ -32,3 +33,4 @@ routes.use('/otp', otpRoutes);
 routes.use('/ohs', ohsRoutes);
 routes.use('/oscd', oscdRoutes);
 routes.use('/osa', osaRoutes);
+routes.use('/faasg', faasgRoutes);
