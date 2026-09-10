@@ -10,5 +10,12 @@
   "scripts": {
     "build": "npm --prefix frontend run build",
     "postinstall": "npm --prefix frontend install && npm --prefix backend install"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "prisma": "^6.19.3"
   }
 }
