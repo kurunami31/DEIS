@@ -11,6 +11,7 @@ import clearanceRoutes from '../modules/clearance/clearance.routes.js';
 import calendarRoutes from '../modules/calendar/calendar.routes.js';
 import chatRoutes from '../modules/chat/chat.routes.js';
 import otpRoutes from '../modules/otp/otp.routes.js';
+import ohsRoutes from '../modules/ohs/ohs.routes.js';
 
 export const routes = Router();
 
@@ -26,3 +27,4 @@ routes.use('/clearances', clearanceRoutes);
 routes.use('/calendar', calendarRoutes);
 routes.use('/chat', chatRoutes);
 routes.use('/otp', otpRoutes);
+routes.use('/ohs', ohsRoutes);

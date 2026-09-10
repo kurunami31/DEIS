@@ -35,6 +35,16 @@ const NAV_GROUPS = [
     items: [{ to: '/my-sections', label: 'My Sections', icon: BookOpen }],
   },
   {
+    label: 'Health Services',
+    roles: ['OHS', 'ADMIN', 'REGISTRAR'],
+    items: [
+      { to: '/ohs', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/ohs/records', label: 'Medical Records', icon: FileText },
+      { to: '/ohs/drug-test', label: 'Drug Test Results', icon: FlaskConical },
+      { to: '/ohs/medical-test', label: 'Medical Test Results', icon: FlaskConical },
+    ],
+  },
+  {
     label: 'Registration',
     roles: ['REGISTRAR', 'ADMIN', 'ADMISSION'],
     items: [

@@ -183,6 +183,7 @@ model StudentProfile {
   enrollmentRequests EnrollmentRequest[]
   grades             GradeRecord[]
   clearances         StudentClearance[]
+  medicalRecords     MedicalRecord[]
 }
 
 model Campus {
@@ -458,4 +459,34 @@ model EmailOtp {
 
   @@index([userId, purpose])
   @@index([expiresAt])
+}
+
+// ---------------------------------------------------------------------------
+// Office of Health Services (OHS) — Medical Records
+// ---------------------------------------------------------------------------
+
+model MedicalRecord {
+  id        String          @id @default(uuid())
+  studentId String
+  type      MedicalTestType
+  result    String          // PASSED, FAILED, CONDITIONAL
+  details   Json?           // specific test results
+  testedAt  DateTime
+  testedBy  String?
+  fileUrl   String?         // uploaded document
+  createdAt DateTime        @default(now())
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId, type])
+  @@index([testedAt])
+}
+
+enum MedicalTestType {
+  DRUG_TEST
+  PHYSICAL_EXAM
+  VISION_TEST
+  HEARING_TEST
+  CHEST_XRAY
+  BLOOD_TEST
 }
